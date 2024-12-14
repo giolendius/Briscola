@@ -1,7 +1,8 @@
-from Card import Card
 import pygame
 import numpy as np
-from Agents import *
+
+from .Agents import *
+from .Card import Card
 
 class Briscola:
     def __init__(self, players: int = 2):
