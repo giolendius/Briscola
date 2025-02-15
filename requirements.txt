@@ -1,0 +1,6 @@
+pandas
+keras == 3.7.0
+tensorflow
+tqdm
+pygame == 2.5.2
+loguru

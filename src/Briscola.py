@@ -1,24 +1,29 @@
 import pygame
 import numpy as np
+import pandas as pd
+from tqdm import tqdm
 
 from .Agents import *
-from .Card import Card
+from .Card import Card, Deck, Hand, BriscolaCard, SetOfCards
+
 
 class Briscola:
     def __init__(self, players: int = 2):
         self.tot_players = players
-        if self.tot_players == 4:
-            self.teams = True
-        else:
-            self.teams = False
+        # if self.tot_players == 4:
+        #     self.teams = True
+        # else:
+        #     self.teams = False
+        self.teams = True if self.tot_players == 4 else False
         self.reset()
 
     def __str__(self):
         return f"Briscola a {self.tot_players}"
 
     def reset(self):
-        self.card_values = [2, 4, 5, 6, 7, 8, 9, 10, 13, 15]
-        self.deck = [Card(v, s) for s in range(4) for v in self.card_values]
+        # self.card_values = [2, 4, 5, 6, 7, 8, 9, 10, 13, 15]
+        # self.deck = [Card(v, s) for s in range(4) for v in self.card_values]
+        self.deck = Deck()
         self.turn = 1
         self.done = False
         self.starting_player = 0
@@ -27,16 +32,13 @@ class Briscola:
         if self.teams:
             self.points = [0, 0]
 
-        self.briscola = self._draw_from_deck()
+        self.briscola = BriscolaCard(self.deck)
         self.hand = {}
         self.table = [Card(None, 0) for _ in range(self.tot_players)]
         self.phase = "P"  # "P" play, "C" Calculates points "D" Draw
 
-
         for player in range(self.tot_players):
-            self.hand[player] = []
-            for card in range(3):
-                self.hand[player].append(self._draw_from_deck())
+            self.hand[player] = Hand(self.deck)
 
     def play(self, agents: list, render_mode="none", delay1=1000, delay2=2000):
         self.delay1 = delay1
@@ -77,13 +79,13 @@ class Briscola:
                 text(f"""{self._hand_to_string(self.hand[1])}""", (00, 600))
                 text(f"{agents[1]}:      score {self.points[1]}", (0, 650))
 
-                self._game_engine(agents, mode="pygame")
+                self.game_engine(agents, mode="pygame")
 
                 pygame.display.update()
                 pygame.time.Clock().tick(30)
             pygame.quit()
 
-    def _game_engine(self, agents, mode: str = "not"):
+    def game_engine(self, agents, mode: str = "not"):
 
         def _end_round_operations():
             # determine who takes
@@ -120,7 +122,7 @@ class Briscola:
 
                 if len(self.deck) > self.tot_players - 2:  # usually, proceed to draw
                     self.phase = "D"
-                elif self.turn >= len(self.card_values) * 4 // self.tot_players + 1:  # if very last turn, game ended
+                elif self.turn >= 10 * 4 // self.tot_players + 1:  # if very last turn, game ended
                     self.phase = "test"
                     if sum(self.points) != 120:
                         print(f"{self.points}. Achtung score is not 120! turni {self.turn}")
@@ -131,17 +133,13 @@ class Briscola:
                     self.phase = "P"
 
         def _draw_at_end_turn():
-            # draw
+            """Determine drawing order and implement it"""
 
             for player in turn_order:
                 if len(self.deck) == 0:  # last round, last player draws briscola
-                    for i, card in enumerate(self.hand[player]):
-                        if not card.val:
-                            self.hand[player][i] = self.briscola
+                    self.hand[player].draw_replacement(draw_briscola_last_round=self.briscola)
                 else:
-                    for i, card in enumerate(self.hand[player]):
-                        if not card.val:
-                            self.hand[player][i] = self._draw_from_deck()
+                    self.hand[player].draw_replacement()
             self.phase = "P"
 
         turn_order = [pl % self.tot_players for pl in
@@ -154,15 +152,21 @@ class Briscola:
                     if mode != "pygame" or pygame.time.get_ticks() - self.tempo[0] > self.delay1:
                         if mode == "pygame":
                             self.tempo[0] = pygame.time.get_ticks()
+                        dict_observation = {"Briscola": self.briscola}
+                        dict_observation.update({f"Hand{i}": self.hand[self.current_player][i] for i in range(3) })
+                        dict_observation.update({f"Table{i+1}": el for i, el in enumerate(self.table[1:4])})
+
                         observation = self.hand[self.current_player] + self.table[
                                                                        1:4]  # here we always exclude player 0, he IS playing
-                        azione, q_val = agents[self.current_player].action([self.briscola] + observation)
+                        azione, q_val = agents[self.current_player].action(self.briscola + observation)
+
                         if mode == "train" and self.current_player == 0:
-                            self.observation_memory.append(observation)
+                            self.df_match = self._append_dict_observ_todf(dict_observation, self.df_match)
+                            # self.observation_memory.append(observation)
                             # print(self.observation_memory)
                             self.action_memory.append([azione, q_val])
-                        self.table[self.current_player] = self.hand[self.current_player][azione]  # [agents[cur_player]]
-                        self.hand[self.current_player][azione] = Card(None, 0)
+                        self.table[self.current_player] = self.hand[self.current_player].play_this_card(azione)  # [agents[cur_player]]
+                        # self.hand[self.current_player][azione] = Card(None, 0)
                         self.current_player = (self.current_player + 1) % self.tot_players
                         if self.current_player == self.starting_player:
                             self.phase = "C"
@@ -174,7 +178,7 @@ class Briscola:
             _draw_at_end_turn()
 
         elif self.phase == "test":
-            print("we reach the test phase")
+            print("we reached the test phase")
 
     def _who_takes(self, table: list[type(Card(0, 0))], starting_player: int) -> (int, int):
         commanding_suit = table[starting_player].suit \
@@ -184,38 +188,50 @@ class Briscola:
         self.message = f"Player {takes_player} takes"
         return pt, takes_player
 
-    def train(self, agent, train_episodes, save_name=None, agent_position=0, epochs=5):
+    def simulate_games_and_train(self, agent, train_episodes, save_name=None, agent_position=0, epochs=5):
         f"""Train the agent '{agent}' (remember to call its class with brackets().
         The agents needs a action method and a self.model attribute"""
 
-        from tqdm import tqdm
+        def simulate_and_save_df():
+            self.history = []
+            self.df_whole = pd.DataFrame()
 
-        self.history = []
+            for _ in tqdm(range(train_episodes)):
+                self.reset()
+                self.observation_memory = []
+                self.reward_memory = []
+                self.action_memory = []
+                self.df_match = pd.DataFrame(columns=["Briscola", "Hand0", "Hand1", "Hand2", "Table1"])
+                self.done = False
+                random_agent = RandomAgent("Pieruciu")
+                while not self.done:
+                    self.game_engine([agent, random_agent], mode="train")
 
-        for episode in tqdm(range(train_episodes)):
-            self.reset()
-            self.observation_memory = []
-            self.reward_memory = []
-            self.action_memory = []
-            self.done = False
-            while not self.done:
-                self._game_engine([agent, Agent_Random()], mode="train")
+                # Feature tensor
+                # br = np.repeat([self.briscola.ia()], 20, axis=0)
+                # table = np.array([np.concatenate([card.ia() for card in ob[3:7]]) for ob in self.observation_memory])
+                # hand = [np.array([ob[i].ia() for ob in self.observation_memory]) for i in range(3)]
 
-            # Feature tensor
-            br = np.repeat([self.briscola.ia()], 20, axis=0)
-            table = np.array([np.concatenate([card.ia() for card in ob[3:7]]) for ob in self.observation_memory])
-            hand = [np.array([ob[i].ia() for ob in self.observation_memory]) for i in range(3)]
-            #hand_played = np.array([ob[self.action_memory[i][0]].ia() for i, ob in enumerate(self.observation_memory)])
+                # Target tensor
+                # y = np.array(self.reward_memory).reshape(20, 1)
+                y = np.array([pair[1] for pair in self.action_memory])  # initialize y with the q_values
+                # for i in range(20):  # for each round, the q_value of the taken action is replaced with the reward
+                #     y[i][self.action_memory[i][0]] = self.reward_memory[i]
+                # df_match = pd.concat([self.df_match,pd.DataFrame(y, columns=[f"q_val{i}" for i in range(3)])],axis=1)
+                # self.df_whole = pd.concat([self.df_whole, df_match], axis=0, ignore_index=True)
 
-            # Target tensor
-            #y = np.array(self.reward_memory).reshape(20, 1)
-            y = np.array([pair[1] for pair in self.action_memory]) # initialize y with the q_values
-            for i in range(20): # for each round, the q_value of the taken action is replaced with the reward
-                y[i][self.action_memory[i][0]] = self.reward_memory[i]
-            hst = agent.model.fit([br, table]+hand, y, verbose=0, epochs=epochs)
+
+            # self.df_whole.to_csv("dataset.csv")
+
+        def fit_model():
+            br, table, hand, y = 0,0,0,0 #FIXME
+            hst = agent.model.fit([br, table] + hand, y, verbose=0, epochs=epochs)
             self.history += hst.history["loss"]
-        if save_name:
-            agent.model.save_weights(save_name)
+
+            if save_name:
+                agent.model.save_weights(save_name)
+
+        simulate_and_save_df()
 
     def _draw_from_deck(self) -> Card | None:
         from random import randint
@@ -227,3 +243,7 @@ class Briscola:
     def _hand_to_string(self, hand, spaces=10):
         sp = " " * spaces + "|" + " " * spaces
         return f"{hand[0]}" + sp + f"{hand[1]}" + sp + f"{hand[2]}"
+
+    def _append_dict_observ_todf(self, dict_observation, df):
+        df = pd.concat([df, pd.DataFrame([dict_observation])], ignore_index=True)
+        return df
