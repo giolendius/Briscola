@@ -26,12 +26,13 @@ def play(model_path=None):
     env = Briscola(2)
     if model_path:
         MA = CoolAgent(model_path)
-    env.play([RandomAgent(),CoolAgent()], render_mode="pygame", delay1=1500, delay2=3500)
+    env.play([RandomAgent(), CoolAgent("Jhon")], render_mode="pygame", delay1=500, delay2=100)
 
 
 def test_engine():
-    env=Briscola(2)
-    env.simulate_games_and_train(RandomAgent("Giuanin"), 2)
+    env = Briscola(2)
+    MA = CoolAgent()
+    env.simulate_games_and_train(MA, 2)
 
 
 def train_agents():
@@ -57,6 +58,4 @@ def train_agents():
 # play(model_path="briscola_model.weights.h5")
 # test_env(model_path="briscola_model.weights.h5")
 play()
-# h = env.history
-# plt.plot(range(1,len(h)+1), h)
-# plt.show()
+test_engine()

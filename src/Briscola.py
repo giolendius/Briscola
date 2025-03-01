@@ -8,6 +8,10 @@ from .Card import Card, Deck, Hand, BriscolaCard, SetOfCards
 
 
 class Briscola:
+    deck: Deck
+    table: SetOfCards
+    briscola: BriscolaCard
+
     def __init__(self, players: int = 2):
         self.tot_players = players
         # if self.tot_players == 4:
@@ -15,9 +19,9 @@ class Briscola:
         # else:
         #     self.teams = False
         self.teams = True if self.tot_players == 4 else False
-        self.reset()
+        # self.reset()
 
-    def __str__(self):
+    def __repr__(self):
         return f"Briscola a {self.tot_players}"
 
     def reset(self):
@@ -34,7 +38,7 @@ class Briscola:
 
         self.briscola = BriscolaCard(self.deck)
         self.hand = {}
-        self.table = [Card(None, 0) for _ in range(self.tot_players)]
+        self.table = SetOfCards([Card(None, 0) for _ in range(self.tot_players)])
         self.phase = "P"  # "P" play, "C" Calculates points "D" Draw
 
         for player in range(self.tot_players):
@@ -43,6 +47,7 @@ class Briscola:
     def play(self, agents: list, render_mode="none", delay1=1000, delay2=2000):
         self.delay1 = delay1
         self.delay2 = delay2
+        self.reset()
         assert self.tot_players == len(agents)
         if render_mode == "pygame":
             import pygame
@@ -112,7 +117,7 @@ class Briscola:
                 self.current_player = takes_player
                 self.turn += 1
                 self.message = ""
-                self.table = [Card(None, 0) for _ in range(self.tot_players)]
+                self.table = SetOfCards([Card(None, 0) for _ in range(self.tot_players)])
 
                 if mode == "pygame":
                     self.tempo[0] = pygame.time.get_ticks()
@@ -152,20 +157,24 @@ class Briscola:
                     if mode != "pygame" or pygame.time.get_ticks() - self.tempo[0] > self.delay1:
                         if mode == "pygame":
                             self.tempo[0] = pygame.time.get_ticks()
-                        dict_observation = {"Briscola": self.briscola}
-                        dict_observation.update({f"Hand{i}": self.hand[self.current_player][i] for i in range(3) })
-                        dict_observation.update({f"Table{i+1}": el for i, el in enumerate(self.table[1:4])})
 
-                        observation = self.hand[self.current_player] + self.table[
-                                                                       1:4]  # here we always exclude player 0, he IS playing
-                        azione, q_val = agents[self.current_player].action(self.briscola + observation)
+                        # remove the dict below
+                        dict_observation = {"Briscola": self.briscola}
+                        dict_observation.update({f"Hand{i}": self.hand[self.current_player][i] for i in range(3)})
+                        dict_observation.update({f"Table{i + 1}": el for i, el in enumerate(self.table[1:4])})
+
+                        observation = Observation(self.briscola,
+                                                 self.hand[self.current_player],
+                                                 self.table[1:4])  # here we always exclude player 0, he IS playing
+                        azione, q_val = agents[self.current_player].action(observation)
 
                         if mode == "train" and self.current_player == 0:
                             self.df_match = self._append_dict_observ_todf(dict_observation, self.df_match)
                             # self.observation_memory.append(observation)
                             # print(self.observation_memory)
                             self.action_memory.append([azione, q_val])
-                        self.table[self.current_player] = self.hand[self.current_player].play_this_card(azione)  # [agents[cur_player]]
+                        self.table[self.current_player] = self.hand[self.current_player].play_this_card(
+                            azione)  # [agents[cur_player]]
                         # self.hand[self.current_player][azione] = Card(None, 0)
                         self.current_player = (self.current_player + 1) % self.tot_players
                         if self.current_player == self.starting_player:
@@ -182,9 +191,9 @@ class Briscola:
 
     def _who_takes(self, table: list[type(Card(0, 0))], starting_player: int) -> (int, int):
         commanding_suit = table[starting_player].suit \
-            if self.briscola.suit not in [c.suit for c in table] else self.briscola.suit
-        takes_player = np.argmax([card.ia()[commanding_suit] for card in table])
-        pt = sum([carta.points() for carta in table])
+            if self.briscola.suit not in [c.suit for c in table.cards] else self.briscola.suit
+        takes_player = np.argmax([card.ia()[0][commanding_suit] for card in table.cards])
+        pt = sum([carta.points() for carta in table.cards])
         self.message = f"Player {takes_player} takes"
         return pt, takes_player
 
@@ -203,7 +212,7 @@ class Briscola:
                 self.action_memory = []
                 self.df_match = pd.DataFrame(columns=["Briscola", "Hand0", "Hand1", "Hand2", "Table1"])
                 self.done = False
-                random_agent = RandomAgent("Pieruciu")
+                random_agent = RandomAgent()
                 while not self.done:
                     self.game_engine([agent, random_agent], mode="train")
 
@@ -220,11 +229,10 @@ class Briscola:
                 # df_match = pd.concat([self.df_match,pd.DataFrame(y, columns=[f"q_val{i}" for i in range(3)])],axis=1)
                 # self.df_whole = pd.concat([self.df_whole, df_match], axis=0, ignore_index=True)
 
-
             # self.df_whole.to_csv("dataset.csv")
 
         def fit_model():
-            br, table, hand, y = 0,0,0,0 #FIXME
+            br, table, hand, y = 0, 0, 0, 0  # FIXME
             hst = agent.model.fit([br, table] + hand, y, verbose=0, epochs=epochs)
             self.history += hst.history["loss"]
 

@@ -1,5 +1,6 @@
 import numpy as np
 from typing import List
+from dataclasses import dataclass
 # from loguru import logger
 
 _all_possible_val = [2, 4, 5, 6, 7, 8, 9, 10, 13, 15]
@@ -22,9 +23,9 @@ class Card:
 
     def ia(self):
         """Output the card as tensor of shape (4,)"""
-        a = np.array([0, 0, 0, 0])
+        a = np.array([[0, 0, 0, 0]])
         if self.val:
-            a[self.suit] = self.val
+            a[0][self.suit] = self.val
         return a
 
     def __str__(self):
@@ -34,8 +35,9 @@ class Card:
             return "Card"
         return Card.card_dic[self.val] + " di " + Card.suit_dic[self.suit]
 
-    def __repr__(self):
-        return f"Card({self.val},{self.suit})"
+    def __repr__(self) -> str:
+        repr = f"Card({self.val},{self.suit})" if self else "NoCard"
+        return repr
 
     def __bool__(self):
         if self.val:
@@ -76,11 +78,20 @@ class SetOfCards:
     def __repr__(self):
         return type(self).__name__+"-object with "+str(len(self))+" cards\n"+repr(self.cards)
 
-    def __getitem__(self, index: int):
-        return self.cards[index]
+    def __getitem__(self, index: int | slice):
+        if isinstance(index, (int, np.int64)):
+            return self.cards[index]
+        elif isinstance(index, slice):
+            return SetOfCards(self.cards[index])
+
 
     def __setitem__(self, key, value):
         self.cards[key] = value
+
+    def ia(self):
+        """Returns a list of the cards.ia()"""
+        return [card.ia() for card in self.cards]
+
 
 
 class Deck(SetOfCards):
@@ -116,6 +127,9 @@ class Hand(SetOfCards):
         self[index] = Card(None, 0)
         return played_card
 
+    def indices_card_in_hand(self) -> List[int]:
+        return [i for i in range(3) if self.cards[i]]
+
     def draw_replacement(self, draw_briscola_last_round: BriscolaCard = False):
         for i, position in enumerate(self.cards):
             if not position:
@@ -127,6 +141,18 @@ class Hand(SetOfCards):
         print("no pescato")
 
 
+@dataclass
+class Observation:
+    briscola: BriscolaCard
+    hand: Hand
+    table: SetOfCards
+
+    def ia(self):
+        return [self.briscola.ia()]+self.table.ia()+self.hand.ia()
+
 if __name__ == '__main__':
+    t = SetOfCards([Card(2,2), Card(10,1), Card(15,3), Card(6,0)])
+    t[1]
+    t[1:2]
 
     print("done")

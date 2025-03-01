@@ -1,17 +1,18 @@
+from abc import ABC, abstractmethod
 import numpy as np
 from keras import Input, layers, models, optimizers
-from abc import ABC, abstractmethod
+from random import choice
 
-from src.Card import SetOfCards
+from src.Card import Observation
 
 namelist = ["Pieruc", "Iuanin", "Barbacec", "Vecia"]
 
 
-def boltzmann(q_val, gamma=12):
+def boltzmann(q_val, gamma=12) -> int:
     num_actions = q_val.shape[0]
     a = np.exp(np.clip(q_val / gamma, -45., 45.))
     a = a / np.sum(a)
-    return np.random.choice(range(num_actions), p=a)
+    return int(np.random.choice(range(num_actions), p=a))
 
 
 class Agent(ABC):
@@ -25,7 +26,7 @@ class Agent(ABC):
             Agent.namecounter += 1
 
     @abstractmethod
-    def action(self, observation: SetOfCards):
+    def action(self, observation: Observation) -> (int, np.array):
         pass
 
     def __str__(self):
@@ -37,9 +38,8 @@ class Agent(ABC):
 
 class RandomAgent(Agent):
     """An agent who plays a random card of the available ones"""
-    def action(self, observation):
-        from random import choice
-        poss = [i - 1 for i in range(1, 4) if observation[i].val]
+    def action(self, observation) -> (int, float):
+        poss = observation.hand.indices_card_in_hand()
         return choice(poss), 0
 
 
@@ -117,15 +117,10 @@ class CoolAgent(Agent):
         modellobello = models.Model(inputs=[brisc, table] + ini_hand, outputs=out)
         self.model = modellobello
 
-    def action(self, observation, policy="Boltzmann"):  # observation : list[type(Card(0,0))]
+    def action(self, observation: Observation, policy="Boltzmann"):  # observation : list[type(Card(0,0))]
 
-        brisc = observation[0].ia().reshape(1, 4)
-        table = np.array([card.ia() for card in observation[4:8]]).reshape(1, 4)
-        poss = [i - 1 for i in range(1, 4) if observation[i].val]
-        # hand = np.concatenate([[observation[i + 1].ia() for i in range(3)]])
-        hand = [observation[i + 1].ia().reshape(1, 4) for i in range(3)]
-
-        q_val = self.model.predict([brisc, table] + hand, verbose=0)
+        possibilities = observation.hand.indices_card_in_hand()
+        q_val = self.model.predict(observation.ia(), verbose=0)
         if np.isnan(q_val).any() or np.isinf(q_val).any():
             error = "Got a non number!!!!!"
             self.model.save_weights("prova.weights.h5")
@@ -133,49 +128,57 @@ class CoolAgent(Agent):
             if q_val.ndim == 2:
                 q_val = q_val.reshape(3)
             action = boltzmann(q_val)
-            if action not in poss:
-                new_q = [q_val[i] if i in poss else -55 for i in range(3)]
+            if action not in possibilities:
+                new_q = [q_val[i] if i in possibilities else -55 for i in range(3)]
                 q_val[action] = -30
                 action = np.argmax(new_q)
         return action, q_val
 
-class Agentepercapire:
-    def __init__(self, name="Good Player", model_path=None):
-        self.name = name
+
+class Agentepercapire(Agent):
+    def __init__(self, name=None, model_path=None):
+        super().__init__(name)
+        self.model = self.build_model()
         # self.model = self.build_model()
-        if model_path:
-            self.model.load_weights(model_path)
 
     def build_model(self):
         brisc = Input(shape=(4,), name="brisc")
         table = Input(shape=(4,), name="table")
-        z = layers.Concatenate()([brisc, table])
-        z1 = layers.Dense(10, activation="relu")(z)
-        modellobello = models.Model(inputs=[brisc, table], outputs=z1)
-        modellobello.compile(optimizer=optimizers.Adam(),
+        # z = layers.Concatenate()([brisc, table])
+        z1 = layers.Dense(10, activation="relu")(table)
+        modellobello = models.Model(inputs=[table], outputs=z1)
+        modellobello.compile(optimizer="adam",
                              loss="mse",
                              metrics=["mse"])
+        # self.model = modellobello
         return modellobello
 
     def action(self, observation, policy="Boltzmann"):  # observation : list[type(Card(0,0))]
 
-        brisc = observation[0].ia().reshape(1, 4)
-        table = observation[0].ia().reshape(1, 4)
+        # observation=[Card(2,1), Card(13,2)]
 
-        q_val = self.model.predict([brisc, table], verbose=0)
+        briscola = observation[0].ia().reshape(1, 4)
+        tavolo = observation[0].ia().reshape(1, 4)
+        q_val = self.model.predict([tavolo], verbose=0)
         return q_val
 
 
+
 if __name__ == '__main__':
-    from src.Card import Card
-    r = RandomAgent()
+    from src.Card import Card, Observation,Hand, Deck, BriscolaCard, SetOfCards
 
-    ag = Agentepercapire()
-    modello = ag.build_model()
-    observation2 = [Card(2, 0),
-                    Card(None, 1)]
-    brisc = observation2[0].ia().reshape(1, 4)
-    table = observation2[0].ia().reshape(1, 4)
+    ag = CoolAgent()
 
-    modello.predict([brisc, table], verbose=0)
-    ag.action(observation2)
+    d=Deck()
+    d = Deck()
+    b = BriscolaCard(d)
+    h = Hand(d)
+    t = SetOfCards([Card(2, 3)])
+    obs = Observation(b, h, t)
+    brisc = obs.briscola.ia().reshape(1, 4)
+    table = obs.table[0].ia().reshape(1, 4)
+    hand = obs.hand
+
+    q1 = ag.model.predict([brisc, table] + hand, verbose=1)
+    q2 = ag.action(obs)
+    1+1

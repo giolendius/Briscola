@@ -1,5 +1,5 @@
 pandas
-keras == 3.7.0
+keras <= 3.2.0
 tensorflow
 tqdm
 pygame == 2.5.2
