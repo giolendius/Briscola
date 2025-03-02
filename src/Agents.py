@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import numpy as np
 from keras import Input, layers, models, optimizers
+import tensorflow as tf
 from random import choice
 
 from src.Card import Observation
@@ -57,7 +58,6 @@ class IsBriscola(layers.Layer):
         return (input_shape[0], 1)
 
     def call(self, array, brisc):
-        import tensorflow as tf
         # brisc=tf.constant(brisc, dtype=tf.float32)
         # assert array.shape==(4,)
         if array.ndim == 2 == brisc.ndim:
