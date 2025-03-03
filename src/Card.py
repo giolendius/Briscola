@@ -23,9 +23,9 @@ class Card:
 
     def ia(self):
         """Output the card as tensor of shape (4,)"""
-        a = np.array([[0, 0, 0, 0]])
+        a = np.array([0, 0, 0, 0])
         if self.val:
-            a[0][self.suit] = self.val
+            a[self.suit] = self.val
         return a
 
     def __str__(self):
@@ -90,7 +90,7 @@ class SetOfCards:
 
     def ia(self):
         """Returns a list of the cards.ia()"""
-        return [card.ia() for card in self.cards]
+        return [card.ia().reshape(1,4) for card in self.cards]
 
 
 
@@ -147,8 +147,9 @@ class Observation:
     hand: Hand
     table: SetOfCards
 
-    def ia(self):
-        return [self.briscola.ia()]+self.table.ia()+self.hand.ia()
+    def predict_form(self):
+        return [self.briscola.ia().reshape(1,4)]+self.table.ia()+self.hand.ia()
+    # FIX ME with proper inheritance from the briscola
 
 if __name__ == '__main__':
     t = SetOfCards([Card(2,2), Card(10,1), Card(15,3), Card(6,0)])

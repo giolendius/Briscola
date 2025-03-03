@@ -124,10 +124,10 @@ class Briscola:
             azione, q_val = agents[self.current_player].action(observation)
 
             if mode == "train" and self.current_player == 0:
-                self.turn_memory = {"briscola": observation.briscola.ia(),
-                                    "table": observation.table.ia(),
-                                    "hand": observation.hand.ia(),
-                                    "action": azione, "turn": self.turn}
+                self.turn_memory = {f"table{i}": card.ia() for i, card in enumerate(observation.table.cards)}
+                self.turn_memory["briscola"] = observation.briscola.ia()
+                for i in range(3):
+                    self.turn_memory[f"hand{i}"] = observation.hand[i].ia()
             self.table[self.current_player] = self.hand[self.current_player].play_this_card(azione)
             self.current_player = (self.current_player + 1) % self.tot_players
             if self.current_player == self.starting_player:
@@ -192,60 +192,61 @@ class Briscola:
     def _who_takes(self, table: list[type(Card(0, 0))] | SetOfCards, starting_player: int) -> (int, int):
         commanding_suit = table[starting_player].suit \
             if self.briscola.suit not in [c.suit for c in table.cards] else self.briscola.suit
-        takes_player = np.argmax([card.ia()[0][commanding_suit] for card in table.cards])
+        takes_player = np.argmax([card.ia()[commanding_suit] for card in table.cards])
         pt = sum([carta.points() for carta in table.cards])
         self.message = f"Player {takes_player} takes"
         return pt, takes_player
 
-    def simulate_games_and_train(self, agent, train_episodes, save_name=None, agent_position=0, epochs=5):
+    def simulate_games(self, agent, train_episodes, save_name=None, agent_position=0):
         f"""Train the agent '{agent}' (remember to call its class with brackets().
-        The agents needs a action method and a self.model attribute"""
+        The agents needs an action method and a self.model attribute"""
+        self.df = pd.DataFrame()
+        for _ in tqdm(range(train_episodes)):
+            self.reset()
+            self.memory = []
+            self.done = False
+            random_agent = RandomAgent()
+            while not self.done:
+                self.game_engine([agent, random_agent], mode="train")
 
-        def simulation_to_df():
-            self.df = pd.DataFrame()
+            df = pd.DataFrame(self.memory)
+            self.df = pd.concat([df, self.df], ignore_index = True)
 
-            for _ in tqdm(range(train_episodes)):
-                self.reset()
-                # self.observation_memory = []
-                # self.reward_memory = []
-                # self.action_memory = []
+        if save_name:
+            self.df.to_csv(save_name)
+        else:
+            return df
 
-                self.memory = []
+            # Feature tensor
+            # br = np.repeat([self.briscola.ia()], 20, axis=0)
+            # table = np.array([np.concatenate([card.ia() for card in ob[3:7]]) for ob in self.observation_memory])
+            # hand = [np.array([ob[i].ia() for ob in self.observation_memory]) for i in range(3)]
 
-                self.df_match = pd.DataFrame(columns=["Briscola", "Hand0", "Hand1", "Hand2", "Table1"])
-                self.done = False
-                random_agent = RandomAgent()
-                while not self.done:
-                    self.game_engine([agent, random_agent], mode="train")
+            # Target tensor
+            # y = np.array(self.reward_memory).reshape(20, 1)
+            # y = np.array([pair[1] for pair in self.action_memory])  # initialize y with the q_values
+            # for i in range(20):  # for each round, the q_value of the taken action is replaced with the reward
+            #     y[i][self.action_memory[i][0]] = self.reward_memory[i]
+            # df_match = pd.concat([self.df_match,pd.DataFrame(y, columns=[f"q_val{i}" for i in range(3)])],axis=1)
+            # self.df_whole = pd.concat([self.df_whole, df_match], axis=0, ignore_index=True)
 
-                df = pd.DataFrame(self.memory)
-                self.df = pd.concat([df, self.df], ignore_index = True)
+    def train_model(self, agent, data, epochs=5, save_name = None):
+        if isinstance(data, pd.DataFrame):
+            df = data
+        else:
+            df = pd.read_csv(data)
 
-                # Feature tensor
-                # br = np.repeat([self.briscola.ia()], 20, axis=0)
-                # table = np.array([np.concatenate([card.ia() for card in ob[3:7]]) for ob in self.observation_memory])
-                # hand = [np.array([ob[i].ia() for ob in self.observation_memory]) for i in range(3)]
+        br = np.stack(df["briscola"])
+        tb = np.stack(df["table0"])
+        hand0 = np.stack(df["hand0"])
+        hand1 = np.stack(df["hand1"])
+        hand2 = np.stack(df["hand2"])
+        reward = df["reward"].to_numpy().reshape(-1,1)
+        hst = agent.model.fit([br, tb,hand0,hand1,hand2], reward, verbose=1, epochs=epochs)
+        history = hst.history["loss"]
 
-                # Target tensor
-                # y = np.array(self.reward_memory).reshape(20, 1)
-                # y = np.array([pair[1] for pair in self.action_memory])  # initialize y with the q_values
-                # for i in range(20):  # for each round, the q_value of the taken action is replaced with the reward
-                #     y[i][self.action_memory[i][0]] = self.reward_memory[i]
-                # df_match = pd.concat([self.df_match,pd.DataFrame(y, columns=[f"q_val{i}" for i in range(3)])],axis=1)
-                # self.df_whole = pd.concat([self.df_whole, df_match], axis=0, ignore_index=True)
-
-        def fit_model():
-            br, table, hand, y = 0, 0, 0, 0  # FIXME
-            hst = agent.model.fit([br, table] + hand, y, verbose=0, epochs=epochs)
-            self.history += hst.history["loss"]
-
-            if save_name:
-                agent.model.save_weights(save_name)
-
-        self.history = []
-        simulation_to_df()
-        self.df.to_csv("dataset.csv")
-        # fit_model()
+        if save_name:
+            agent.model.save_weights(save_name)
 
 
 

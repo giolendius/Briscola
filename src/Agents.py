@@ -6,7 +6,7 @@ from random import choice
 
 from src.Card import Observation
 
-namelist = ["Pieruc", "Iuanin", "Barbacec", "Vecia"]
+namelist = ["Pieruc", "Iuanin", "Barbacec", "Vecia", "Pinotu", "Parin", "Lenciu"]
 
 
 def boltzmann(q_val, gamma=12) -> int:
@@ -17,14 +17,11 @@ def boltzmann(q_val, gamma=12) -> int:
 
 
 class Agent(ABC):
-    namecounter = 0
-
     def __init__(self, name=None):
         if name:
             self.name = name
         else:
-            self.name = namelist[Agent.namecounter]
-            Agent.namecounter += 1
+            self.name = choice(namelist)
 
     @abstractmethod
     def action(self, observation: Observation) -> (int, np.array):
@@ -96,9 +93,10 @@ class CoolAgent(Agent):
         table_ren = table / 15
         tb = IsBriscola()(table_ren, brisc)
 
-        core1 = layers.Dense(10, activation="relu", name="core1")
-        core2 = layers.Dense(10, activation="relu", name="core2")
-        core3 = layers.Dense(1)
+        core1 = layers.Dense(20, activation="relu", name="core1")
+        core2 = layers.Dense(20, activation="relu", name="core2")
+        core3 = layers.Dense(10, activation="relu", name="core3")
+        core4 = layers.Dense(1)
 
         ini_hand = [0, 0, 0]
         outp = [0, 0, 0]
@@ -110,7 +108,8 @@ class CoolAgent(Agent):
             z1 = core1(z)
             z2 = core2(z1)
             z3 = core3(z2)
-            outp[i] = z3
+            z4 = core4(z3)
+            outp[i] = z4
         out = layers.concatenate(outp)
         # whole_hand=tf.constant(whole_hand)
         # out=layers.Concatenate()([whole_hand])
@@ -120,7 +119,7 @@ class CoolAgent(Agent):
     def action(self, observation: Observation, policy="Boltzmann"):  # observation : list[type(Card(0,0))]
 
         possibilities = observation.hand.indices_card_in_hand()
-        q_val = self.model.predict(observation.ia(), verbose=0)
+        q_val = self.model.predict(observation.predict_form(), verbose=0)
         if np.isnan(q_val).any() or np.isinf(q_val).any():
             error = "Got a non number!!!!!"
             self.model.save_weights("prova.weights.h5")

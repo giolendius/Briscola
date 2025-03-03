@@ -32,30 +32,34 @@ def play(model_path=None):
 def test_engine():
     env = Briscola(2)
     MA = CoolAgent()
-    env.simulate_games_and_train(MA, 2)
+    env.simulate_games(MA, 2)
 
 
 def train_agents():
-    # logger.info("Starting training")
-    # from src.Card import Card
-    # ag = agentepercapire()
-    # modello = ag.build_model()
-    # observation2 = [Card(2, 0),
-    #                 Card(None, 1),
-    #                 Card(None, 1),
-    #                 Card(15, 1),
-    #                 Card(12, 2)]
-    # brisc = observation2[0].ia().reshape(1, 4)
-    # table = observation2[0].ia().reshape(1, 4)
-    # ag=CoolAgent()
-    # modello.predict([brisc, table], verbose=0)
-    # ag.action(observation2)
     env = Briscola(2)
     MA = CoolAgent()
-    env.simulate_games_and_train(MA, 2, save_name="briscola_model.weights.h5")
+
+    from src.Card import Card
+    observation2 = [Card(2, 0),
+                    Card(4, 1),
+                    Card(13, 3),
+                    Card(15, 1),
+                    Card(13, 2)]
+    brisc = observation2[0].ia().reshape(1, 4)
+    table = observation2[1].ia().reshape(1, 4)
+    hand0 = observation2[2].ia().reshape(1, 4)
+    hand1 = observation2[3].ia().reshape(1, 4)
+    hand2 = observation2[4].ia().reshape(1, 4)
+
+    vec1 = MA.model.predict([brisc, table,hand0, hand1, hand2], verbose=0)
+
+    df = env.simulate_games(MA, 20)
+    env.train_model(MA, df, epochs=20, save_name="briscola_model.weights.h5")
+    vec2 = MA.model.predict([brisc, table, hand0, hand1, hand2], verbose=0)
+    print(vec1,vec2)
 
 
 # play(model_path="briscola_model.weights.h5")
 # test_env(model_path="briscola_model.weights.h5")
 # play()
-test_engine()
+train_agents()
