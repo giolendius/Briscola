@@ -84,9 +84,11 @@ class SetOfCards:
         elif isinstance(index, slice):
             return SetOfCards(self.cards[index])
 
-
     def __setitem__(self, key, value):
         self.cards[key] = value
+
+    def __bool__(self):
+        return bool(self.cards[0])
 
     def ia(self):
         """Returns a list of the cards.ia()"""

@@ -14,7 +14,7 @@ class Briscola:
     deck: Deck
     table: SetOfCards
     briscola: BriscolaCard
-    turn_memory: Dict[memories,int]
+    turn_memory: Dict[memories,float]
 
     def __init__(self, players: int = 2):
         self.tot_players = players
@@ -124,10 +124,14 @@ class Briscola:
             azione, q_val = agents[self.current_player].action(observation)
 
             if mode == "train" and self.current_player == 0:
-                self.turn_memory = {f"table{i}": card.ia() for i, card in enumerate(observation.table.cards)}
-                self.turn_memory["briscola"] = observation.briscola.ia()
-                for i in range(3):
-                    self.turn_memory[f"hand{i}"] = observation.hand[i].ia()
+                if observation.table:
+                    self.turn_memory = {f"table{i}": card.ia() for i, card in enumerate(observation.table.cards)}
+                    self.turn_memory["briscola"] = observation.briscola.ia()
+                    for i in range(3):
+                        self.turn_memory[f"hand{i}"] = observation.hand[i].ia()
+                    self.turn_memory["turn"]=self.turn
+                else:
+                    self.turn_memory = None
             self.table[self.current_player] = self.hand[self.current_player].play_this_card(azione)
             self.current_player = (self.current_player + 1) % self.tot_players
             if self.current_player == self.starting_player:
@@ -164,8 +168,9 @@ class Briscola:
                 self.tempo[0] = pygame.time.get_ticks()
 
             if mode == "train":
-                self.turn_memory["reward"] = rewards[0]
-                self.memory.append(self.turn_memory)
+                if self.turn_memory:
+                    self.turn_memory["reward"] = rewards[0]/10
+                    self.memory.append(self.turn_memory)
 
             if len(self.deck) > self.tot_players - 2:  # usually, proceed to draw
                 self.phase = "D"
@@ -215,7 +220,7 @@ class Briscola:
         if save_name:
             self.df.to_csv(save_name)
         else:
-            return df
+            return self.df
 
             # Feature tensor
             # br = np.repeat([self.briscola.ia()], 20, axis=0)
@@ -242,7 +247,7 @@ class Briscola:
         hand1 = np.stack(df["hand1"])
         hand2 = np.stack(df["hand2"])
         reward = df["reward"].to_numpy().reshape(-1,1)
-        hst = agent.model.fit([br, tb,hand0,hand1,hand2], reward, verbose=1, epochs=epochs)
+        hst = agent.model.fit([br, tb,hand0,hand1,hand2], reward, verbose=2, epochs=epochs)
         history = hst.history["loss"]
 
         if save_name:

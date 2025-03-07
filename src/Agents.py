@@ -90,6 +90,38 @@ class CoolAgent(Agent):
 
         brisc = Input(shape=(4,), name="brisc")
         table = Input(shape=(4,), name="table")
+
+        ###shared
+        input_layer = Input(shape=(4,))
+        played_ren = input_layer #/ 15
+        table_ren = table #/ 15
+        tb = IsBriscola()(table_ren, brisc)
+        pb = IsBriscola()(played_ren, brisc)
+        concat_l = layers.Concatenate(axis=1, name=f"ConcHand")([table_ren, tb, played_ren, pb])
+        core_1 = layers.Dense(10, activation="relu", name="core1")(concat_l)
+        core_2 = layers.Dense(10, activation="relu", name="core2")(core_1)
+        outer1 = layers.Dense(1, name="outer1")(core_2)
+        outer2 = layers.Dense(1, name="outer2")(core_2)
+        final = outer1*outer2
+
+        shared_model = models.Model(inputs=[brisc, table, input_layer], outputs=final, name="inner_model")
+
+        h1 = Input(shape=(4,), name=f"hand1")
+        h2 = Input(shape=(4,), name=f"hand2")
+        h3 = Input(shape=(4,), name=f"hand3")
+
+        output1 = shared_model([brisc, table, h1])
+        output2 = shared_model([brisc, table, h2])
+        output3 = shared_model([brisc, table, h3])
+
+        out = layers.concatenate([output1,output2,output3])
+        self.model = models.Model(inputs=[brisc, table, h1, h2, h3], outputs=out, name="CoolModel")
+
+    def build_model2(self):
+        from keras import Input, layers, models, optimizers
+
+        brisc = Input(shape=(4,), name="brisc")
+        table = Input(shape=(4,), name="table")
         table_ren = table / 15
         tb = IsBriscola()(table_ren, brisc)
 
@@ -111,8 +143,6 @@ class CoolAgent(Agent):
             z4 = core4(z3)
             outp[i] = z4
         out = layers.concatenate(outp)
-        # whole_hand=tf.constant(whole_hand)
-        # out=layers.Concatenate()([whole_hand])
         modellobello = models.Model(inputs=[brisc, table] + ini_hand, outputs=out)
         self.model = modellobello
 
