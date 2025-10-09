@@ -4,13 +4,14 @@ from tqdm import tqdm
 from typing import Literal, Dict
 
 from .Agents import *
-from .Card import Card, Deck, Hand, BriscolaCard, SetOfCards
+from .Card import Card, Deck, Hand, BriscolaCard, SetOfCards, Observation
+from .pygame.pygame import SCREEN_H, SCREEN_W #setup_pygame, text
 
 mode = Literal["pygame", "train"]
 memories = Literal["observation", "action", "reward"]
 
 
-class Briscola:
+class BriscolaGame:
     deck: Deck
     table: SetOfCards
     briscola: BriscolaCard
@@ -23,7 +24,7 @@ class Briscola:
         # else:
         #     self.teams = False
         self.teams = True if self.tot_players == 4 else False
-        # self.reset()
+        self.reset()
 
     def __repr__(self):
         return f"Briscola a {self.tot_players}"
@@ -54,10 +55,9 @@ class Briscola:
         self.reset()
         assert self.tot_players == len(agents)
         if render_mode == "pygame":
-            import pygame
+            # self.screen, self.tempo, self.message = setup_pygame()
             pygame.init()
-            SCREEN_W = 1000
-            SCREEN_H = 800
+
             pygame.display.set_caption("Love Briscola")
             self.screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
             self.tempo = [pygame.time.get_ticks()]
