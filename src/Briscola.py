@@ -5,7 +5,9 @@ from typing import Literal, Dict
 
 from .Agents import *
 from .Card import Card, Deck, Hand, BriscolaCard, SetOfCards, Observation
-from .pygame.pygame import SCREEN_H, SCREEN_W #setup_pygame, text
+
+SCREEN_W = 1000
+SCREEN_H = 800
 
 mode = Literal["pygame", "train"]
 memories = Literal["observation", "action", "reward"]
@@ -17,7 +19,7 @@ class BriscolaGame:
     briscola: BriscolaCard
     turn_memory: Dict[memories,float]
 
-    def __init__(self, players: int = 2):
+    def __init__(self, players: int):
         self.tot_players = players
         # if self.tot_players == 4:
         #     self.teams = True
@@ -115,9 +117,9 @@ class BriscolaGame:
             print("we reached the test phase")
 
     def _play_a_card(self, mode: str, agents):
-        if mode != "pygame" or pygame.time.get_ticks() - self.tempo[0] > self.delay_play:
-            if mode == "pygame":
-                self.tempo[0] = pygame.time.get_ticks()
+        if True:#mode != "pygame" or pygame.time.get_ticks() - self.tempo[0] > self.delay_play:
+            # if mode == "pygame":
+            #     self.tempo[0] = pygame.time.get_ticks()
             observation = Observation(self.briscola,
                                       self.hand[self.current_player],
                                       self.table[1:4])  # here we always exclude player 0, he IS playing
