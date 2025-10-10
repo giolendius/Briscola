@@ -1,7 +1,8 @@
 import numpy as np
 from keras import Input, layers, models, optimizers
 import tensorflow as tf
-from src import Agents
+from src.types import Agents
+
 
 def boltzmann(q_val, gamma=12) -> int:
     num_actions = q_val.shape[0]
@@ -39,7 +40,7 @@ class IsBriscola(layers.Layer):
         return "Is Briscola L"
 
 
-class CoolAgent(Agents.Agent):
+class DLAgent(Agents.Agent):
     """Create a new DL agent. If model is not provided, a new model is created.
     Else, it is loaded from the specified path"""
 
@@ -53,7 +54,7 @@ class CoolAgent(Agents.Agent):
                            metrics=["mse"])
 
     def build_model(self):
-        from keras import Input, layers, models, optimizers
+        from keras import Input, layers, models
 
         brisc = Input(shape=(4,), name="brisc")
         table = Input(shape=(4,), name="table")
@@ -84,7 +85,7 @@ class CoolAgent(Agents.Agent):
         self.model = modellobello
 
     def action(self, observation: Agents.Observation, policy="Boltzmann"):  # observation : list[type(Card(0,0))]
-
+        # FIXME check after observation change
         possibilities = observation.hand.indices_card_in_hand()
         q_val = self.model.predict(observation.predict_form(), verbose=0)
         if np.isnan(q_val).any() or np.isinf(q_val).any():
@@ -131,9 +132,9 @@ class Agentepercapire(Agents.Agent):
 
 
 if __name__ == '__main__':
-    from src.Card import Card, Observation,Hand, Deck, BriscolaCard, SetOfCards
+    from src.types.Card import Card, Observation,Hand, Deck, BriscolaCard, SetOfCards
 
-    ag = CoolAgent()
+    ag = DLAgent()
 
     d=Deck()
     d = Deck()

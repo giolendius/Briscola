@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 from random import choice
 
-from src.Card import Observation
+from src.types.Card import Observation
 
 namelist = ["Pieruc", "Iuanin", "Barbacec", "Vecia", "Pinotu", "Parin", "Lenciu"]
 
@@ -27,9 +27,9 @@ class Agent(ABC):
 
 class RandomAgent(Agent):
     """An agent who plays a random card of the available ones"""
-    def action(self, observation) -> (int, float):
-        poss = observation.hand.indices_card_in_hand()
-        return choice(poss), 0
+    def action(self, observation: Observation) -> (int, float):
+        poss = observation.indices_card_in_hand()
+        return choice(poss), np.array([0,0,0])
 
 
 class AgentOnlyFirst(Agent):

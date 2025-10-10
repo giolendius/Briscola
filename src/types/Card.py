@@ -1,13 +1,16 @@
 import numpy as np
-from typing import List
-from dataclasses import dataclass
+from typing import List, Optional, cast
+from dataclasses import dataclass, fields
+
+
 # from loguru import logger
 
 _all_possible_val = [2, 4, 5, 6, 7, 8, 9, 10, 13, 15]
-
+suit_dictionary = {0: "Bastoni", 1: "Coppe", 2: "Denari", 3: "Spade"}
+suit_dic = {0: "Ba", 1: "Co", 2: "De", 3: "Sp"}
 
 class Card:
-    suit_dic = {0: "Bastoni", 1: "Coppe", 2: "Ori", 3: "Spade"}
+
     card_dic = {x: f"{x}" for x in range(4, 8)} | {2: "2", 8: "Fante", 9: "Cav", 10: "Re", 13: "3", 15: "Asso"}
     points_dic = {8: 2, 9: 3, 10: 4, 13: 10, 15: 11}
 
@@ -16,7 +19,7 @@ class Card:
             self.val = val
         else:
             raise Exception(f"Il valore {val} della carta non è valido")
-        if suit in Card.suit_dic:
+        if suit in suit_dictionary:
             self.suit: int = suit
         else:
             raise Exception("Il seme della carta non è valido. Dichiarare seme con intero 0-3")
@@ -28,16 +31,23 @@ class Card:
             a[self.suit] = self.val
         return a
 
+    def card_to_dict(self, explicit: bool) -> dict:
+        if explicit:
+            d = {'val': self.val, 'suit': suit_dictionary[self.suit]}
+        else:
+            d = {"v":self.val, "s": self.val}
+        return d
+
     def __str__(self):
         if not self.val:
             return "___"
         elif self.val == "Card":
             return "Card"
-        return Card.card_dic[self.val] + " di " + Card.suit_dic[self.suit]
+        return Card.card_dic[self.val] + " di " + suit_dictionary[self.suit]
 
     def __repr__(self) -> str:
-        repr = f"Card({self.val},{self.suit})" if self else "NoCard"
-        return repr
+        representation = f"Card({self.val},{suit_dic[self.suit]})" if self else "NoCard"
+        return representation
 
     def __bool__(self):
         if self.val:
@@ -52,6 +62,7 @@ class Card:
 class SetOfCards:
     def __init__(self, list_of_cards: List[Card] = None):
         self.cards = list_of_cards if list_of_cards else []
+        self.name = 'SetOfCards'
 
     def draw_random(self) -> Card | None:
         """Remove a random card from this set and returns it"""
@@ -82,7 +93,7 @@ class SetOfCards:
         if isinstance(index, (int, np.int64)):
             return self.cards[index]
         elif isinstance(index, slice):
-            return SetOfCards(self.cards[index])
+            return type(self)(self.cards[index])
 
     def __setitem__(self, key, value):
         self.cards[key] = value
@@ -94,12 +105,19 @@ class SetOfCards:
         """Returns a list of the cards.ia()"""
         return [card.ia().reshape(1,4) for card in self.cards]
 
+    # def to_dict(self):
+
+class Table(SetOfCards):
+    def __init__(self, list_of_cards: List[Card] = None):
+        super().__init__(list_of_cards)
+        self.name = 'Table'
 
 
 class Deck(SetOfCards):
     def __init__(self):
         super().__init__()
         self.cards = [Card(v, s) for s in range(4) for v in _all_possible_val]
+
 
 
 class BriscolaCard(Card, SetOfCards):
@@ -115,6 +133,7 @@ class BriscolaCard(Card, SetOfCards):
 class Hand(SetOfCards):
     def __init__(self, deck: Deck):
         super().__init__()
+        self.name = 'Hand'
         self.deck = deck
         self.cards = [
             self.deck.draw_random(),
@@ -124,12 +143,13 @@ class Hand(SetOfCards):
     def __str__(self):
         return "stampo"+str(self.cards)
 
-    def play_this_card(self, index):
+    def play_this_card(self, index: int):
         played_card = self[index]
         self[index] = Card(None, 0)
         return played_card
 
     def indices_card_in_hand(self) -> List[int]:
+        raise NotImplementedError
         return [i for i in range(3) if self.cards[i]]
 
     def draw_replacement(self, draw_briscola_last_round: BriscolaCard = False):
@@ -143,18 +163,60 @@ class Hand(SetOfCards):
         print("no pescato")
 
 
+
 @dataclass
 class Observation:
     briscola: BriscolaCard
-    hand: Hand
-    table: SetOfCards
+    hand0: Card
+    hand1: Card
+    hand2: Card
+    table0: Card = None
+    table1: Card = None
 
-    def predict_form(self):
-        return [self.briscola.ia().reshape(1,4)]+self.table.ia()+self.hand.ia()
-    # FIX ME with proper inheritance from the briscola
+    @classmethod
+    def from_sets(cls, briscola: BriscolaCard, hand: Hand, table: Table):
+        return cls(briscola=briscola,
+                   hand0=hand[0],
+                   hand1=hand[1],
+                   hand2=hand[2],
+                   table0=table[0] if len(table) > 0 else Card(None, 0),
+                   table1=table[1] if len(table) > 1 else Card(None, 0))
+
+    def indices_card_in_hand(self) -> List[int]:
+        return [i for i, card in enumerate([self.hand0, self.hand1, self.hand2]) if card]
+    # def predict_form(self):
+    #     return [self.briscola.ia().reshape(1,4)]+self.table.ia()+self.hand.ia()
+    def to_dict(self, explicit: bool = True) -> dict:
+        dict_card_suit_value = {f"{name}_{key}": val
+                for name,carta in self.__dict__.items() if carta and isinstance(carta, Card)
+                for key, val in carta.card_to_dict(explicit=explicit).items()}
+        return dict_card_suit_value
+
+@dataclass
+class TurnMemory:
+    turn: int
+    observation: Observation
+    reward: int = None
+    action: int = None
+    def to_dict(self, explicit: bool = True) -> dict:
+        dict_int = {'turn' : self.turn,
+                    'reward': self.reward,
+                    'action': self.action}
+        return dict_int | self.observation.to_dict(explicit)
+
+
+
+
+
 
 if __name__ == '__main__':
-    t = SetOfCards([Card(2,2), Card(10,1), Card(15,3), Card(6,0)])
+    d = Deck()
+    b = BriscolaCard(d)
+    h = Hand(d)
+    t = Table([Card(2,2)])
+    o = Observation.from_sets(b, h, t)
+    t = TurnMemory(1, o, reward=3, action=2)
+    o.to_dict(True)
     t[1]
     t[1:2]
 
