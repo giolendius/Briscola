@@ -1,6 +1,9 @@
 import pygame
+from typing import List
 
 from ..Briscola import BriscolaEnv
+from ..types.Agents import Agent, Human
+from ..types.enums import Action
 
 SCREEN_W = 1000
 SCREEN_H = 800
@@ -13,14 +16,20 @@ class PyBriscolaEnv(BriscolaEnv):
         self.tempo = [pygame.time.get_ticks()]
         self.message = ""
         self.flg_pause = False
+        self.awaiting_user_input: bool = False
         self.delay_play = delay_play
         self.delay_end_round = delay_end_round
 
-    def run_env(self, agents: list):
+    def initial_checks(self, agents):
         assert self.tot_players == len(agents)
+        assert not any([isinstance(a, Human) for a in agents[1:]]), 'Human player first pos'
 
+        if isinstance(agents[0], Human):
+            pass
+
+    def run_env(self, agents: List[Agent]):
+        self.initial_checks(agents)
         pygame.init()
-
         pygame.display.set_caption("Love Briscola")
 
         self.running = True
@@ -29,10 +38,21 @@ class PyBriscolaEnv(BriscolaEnv):
                 if evento.type == pygame.QUIT:
                     self.running = False
                 elif evento.type == pygame.KEYDOWN:
+                    primo_giocatore = agents[0]
                     if evento.key == pygame.K_p:
                         # Azione da eseguire quando si preme 'N'
                         print("Hai premuto P, metto in pausa")
                         self.flg_pause = not self.flg_pause
+                    elif isinstance(primo_giocatore, Human) and self.awaiting_user_input:
+                        if evento.key == pygame.K_1:
+                            self.awaiting_user_input = False
+                            primo_giocatore.action_chosen = Action(0)
+                        elif evento.key == pygame.K_2:
+                            self.awaiting_user_input = False
+                            primo_giocatore.action_chosen = Action(1)
+                        elif evento.key == pygame.K_3:
+                            self.awaiting_user_input = False
+                            primo_giocatore.action_chosen = Action(2)
 
             self.pygame_play_time(agents)
 
@@ -44,17 +64,27 @@ class PyBriscolaEnv(BriscolaEnv):
         """Handles pygame while the actual game is going"""
         self.screen.fill((62, 184, 99))
 
-        text(self.screen, f"{agents[0]}:      score {self.points[0]}", (0, 100))
-        text(self.screen, f"{self._hand_to_string(self.hand[0])}", (00, 150))
-        text(self.screen, f"{self.table[0]}", (0, 300))
+        if self.flg_pause:
+            text(self.screen, f"Game pause! Press P to resume", (50,50))
+
+        if self.awaiting_user_input:
+            text(self.screen, f"It's your turn!", (0, 700), (180, 20, 20), size=60)
+
+        text(self.screen, f"{agents[0]}:      score {self.points[0]}", (0, 650))
+        text(self.screen, f"{self.hand[0]}", (00, 600))
+        text(self.screen, f"{self.table[0]}", (0, 400))
+
         text(self.screen, f"{self.briscola}", (-400, 350))
         text(self.screen, f"Remaining: {len(self.deck)}, t={self.turn}", (400, 350))
         text(self.screen, f"{self.message}", (0, 350), size=20)
-        text(self.screen, f"{self.table[1]}", (0, 400))
-        text(self.screen, f"""{self._hand_to_string(self.hand[1])}""", (00, 600))
-        text(self.screen, f"{agents[1]}:      score {self.points[1]}", (0, 650))
 
-        if (pygame.time.get_ticks() - self.tempo[0] > self.delay_play) and not self.flg_pause:
+        text(self.screen, f"{self.table[1]}", (0, 300))
+        text(self.screen, f"{self.hand[1]}", (00, 150))
+        text(self.screen, f"{agents[1]}:      score {self.points[1]}", (0, 100))
+
+        if ((pygame.time.get_ticks() - self.tempo[0] > self.delay_play)
+                and not self.flg_pause
+                and not self.awaiting_user_input):
             self.game_engine(agents)
             self.tempo[0] = pygame.time.get_ticks()
 

@@ -73,20 +73,22 @@ class BriscolaEnv:
         observation = Observation.from_sets(self.briscola,
                                             self.hand[self.current_player],
                                             self.table[1:4])  # here we always exclude player 0, he IS playing
-        if self.current_player == protagonist:
-            self.turn_memory = TurnMemory(turn=self.turn,
-                                          observation=observation)
 
         azione, q_val = agents[self.current_player].action(observation)
 
-        if self.current_player == protagonist:
-            self.turn_memory.action = azione
+        if azione == Action.not_chosen_yet:
+            self.awaiting_user_input = True
+        else:
+            if self.current_player == protagonist:
+                self.turn_memory = TurnMemory(turn=self.turn,
+                                              observation=observation,
+                                              action=azione.value)
 
-        self.table[self.current_player] = self.hand[self.current_player].play_this_card(azione)
-        self.current_player = (self.current_player + 1) % self.tot_players
+            self.table[self.current_player] = self.hand[self.current_player].play_this_card(azione)
+            self.current_player = (self.current_player + 1) % self.tot_players
 
-        if self.current_player == self.starting_player:
-            self.phase = "C"
+            if self.current_player == self.starting_player:
+                self.phase = "C"
 
     def _end_round_operations(self):
         # determine who takes
@@ -149,21 +151,6 @@ class BriscolaEnv:
         self.running = True
         while self.running:
             self.game_engine(agents)
-        print('Game Done')
-
-    def simulate_games(self, agent, train_episodes, save_name=None, agent_position=0):
-        f"""Train the agent '{agent}' (remember to call its class with brackets().
-        The agents needs an action method and a self.model attribute"""
-        self.df = pd.DataFrame()
-        for _ in tqdm(range(train_episodes)):
-            self.run_env([agent, RandomAgent()])
-            df = pd.DataFrame(self.memory)
-            self.df = pd.concat([df, self.df], ignore_index=True)
-
-        if save_name:
-            self.df.to_csv(save_name)
-        else:
-            return self.df
 
     def train_model(self, agent, data, epochs=5, save_name=None):
         if isinstance(data, pd.DataFrame):
@@ -183,17 +170,7 @@ class BriscolaEnv:
         if save_name:
             agent.model.save_weights(save_name)
 
-    def _draw_from_deck(self) -> Card | None:
-        from random import randint
-        if not self.deck:
-            return None  # or raise an exception if you prefer
-        index = randint(0, len(self.deck) - 1)
-        return self.deck.pop(index)
-
     def _hand_to_string(self, hand, spaces=10):
         sp = " " * spaces + "|" + " " * spaces
         return f"{hand[0]}" + sp + f"{hand[1]}" + sp + f"{hand[2]}"
 
-    def _append_dict_observ_todf(self, dict_observation, df):
-        df = pd.concat([df, pd.DataFrame([dict_observation])], ignore_index=True)
-        return df

@@ -27,7 +27,7 @@ from src.types.DLAgents import DLAgent
 #     q_val = MA.model.predict([brisc, table] + hand, verbose=0)
 #     print("play king? 1", q_val)
 
-def simulate_games(train_episodes=10, save_name=None):
+def simulate_games(train_episodes=2, save_name=None):
     env = BriscolaEnv(2)
     agents = [RandomAgent("Gioele"), RandomAgent("Luca")]
     full_df = pd.DataFrame()

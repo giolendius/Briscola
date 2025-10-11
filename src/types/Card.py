@@ -2,6 +2,8 @@ import numpy as np
 from typing import List, Optional, cast
 from dataclasses import dataclass, fields
 
+from .enums import Action
+
 
 # from loguru import logger
 
@@ -140,10 +142,16 @@ class Hand(SetOfCards):
             self.deck.draw_random(),
             self.deck.draw_random()]
 
-    def __str__(self):
-        return "stampo"+str(self.cards)
+    def __str__(self, spaces=10):
+        sp = " " * spaces + "|" + " " * spaces
+        return f"{self[0]}" + sp + f"{self[1]}" + sp + f"{self[2]}"
 
-    def play_this_card(self, index: int):
+    def play_this_card(self, index: Action):
+        """Returns the chosen card and removes it from the Hand"""
+        if isinstance(index, Action):
+            index = index.value
+        else:
+            raise ValueError('problema con Azione e interi')
         played_card = self[index]
         self[index] = Card(None, 0)
         return played_card
@@ -195,9 +203,10 @@ class Observation:
 @dataclass
 class TurnMemory:
     turn: int
+    action: int
     observation: Observation
     reward: int = None
-    action: int = None
+
     def to_dict(self, explicit: bool = True) -> dict:
         dict_int = {'turn' : self.turn,
                     'reward': self.reward,
