@@ -71,7 +71,7 @@ class PyBriscolaEnv(BriscolaEnv):
             text(self.screen, f"It's your turn!", (0, 700), (180, 20, 20), size=60)
 
         text(self.screen, f"{agents[0]}:      score {self.points[0]}", (0, 650))
-        text(self.screen, f"{self.hand[0]}", (00, 600))
+        text(self.screen, self.players_hands[0].display(), (00, 600))
         text(self.screen, f"{self.table[0]}", (0, 400))
 
         text(self.screen, f"{self.briscola}", (-400, 350))
@@ -79,7 +79,7 @@ class PyBriscolaEnv(BriscolaEnv):
         text(self.screen, f"{self.message}", (0, 350), size=20)
 
         text(self.screen, f"{self.table[1]}", (0, 300))
-        text(self.screen, f"{self.hand[1]}", (00, 150))
+        text(self.screen, self.players_hands[1].display(True), (00, 150))
         text(self.screen, f"{agents[1]}:      score {self.points[1]}", (0, 100))
 
         if ((pygame.time.get_ticks() - self.tempo[0] > self.delay_play)

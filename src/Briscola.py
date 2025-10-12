@@ -1,32 +1,30 @@
 import pandas as pd
-from tqdm import tqdm
-from typing import Literal
 
 from src.types.Agents import *
-from src.types.Card import Card, Deck, Hand, BriscolaCard, Table, Observation, TurnMemory
+from src.types.Card import Card, Deck, Hand, BriscolaCard, Table, Observation, TurnMemory, players_hands
 
-mode = Literal["pygame", "train"]
-memories = Literal["observation", "action", "reward"]
 
 protagonist = 0
 
 
 class BriscolaEnv:
     running: bool
+    turn: int
+    starting_player: int
+    current_player: int
+    points: list
+    phase: str
 
     deck: Deck
     table: Table
     briscola: BriscolaCard
+    players_hands: players_hands
 
     turn_memory: TurnMemory
     game_memories: list[TurnMemory]
 
     def __init__(self, players: int):
         self.tot_players = players
-        # if self.tot_players == 4:
-        #     self.teams = True
-        # else:
-        #     self.teams = False
         self.teams = True if self.tot_players == 4 else False
         self.reset()
 
@@ -39,17 +37,15 @@ class BriscolaEnv:
         self.turn = 1
         self.starting_player = 0
         self.current_player = self.starting_player
-        self.points = [0 for _ in range(self.tot_players)]
-        if self.teams:
-            self.points = [0, 0]
+        self.points = [0, 0] if self.teams else [0 for _ in range(self.tot_players)]
 
         self.briscola = BriscolaCard(self.deck)
-        self.hand = {}
+        self.players_hands = {}
         self.table = Table([Card(None, 0) for _ in range(self.tot_players)])
         self.phase = "P"  # "P" play, "C" Calculates points "D" Draw
 
         for player in range(self.tot_players):
-            self.hand[player] = Hand(self.deck)
+            self.players_hands[player] = Hand(self.deck)
 
     def game_engine(self, agents):
 
@@ -71,7 +67,7 @@ class BriscolaEnv:
     def _play_a_card(self, agents):
 
         observation = Observation.from_sets(self.briscola,
-                                            self.hand[self.current_player],
+                                            self.players_hands[self.current_player],
                                             self.table[1:4])  # here we always exclude player 0, he IS playing
 
         azione, q_val = agents[self.current_player].action(observation)
@@ -84,7 +80,7 @@ class BriscolaEnv:
                                               observation=observation,
                                               action=azione.value)
 
-            self.table[self.current_player] = self.hand[self.current_player].play_this_card(azione)
+            self.table[self.current_player] = self.players_hands[self.current_player].play_this_card(azione)
             self.current_player = (self.current_player + 1) % self.tot_players
 
             if self.current_player == self.starting_player:
@@ -132,9 +128,9 @@ class BriscolaEnv:
         """Determine drawing order and implement it"""
         for player in turn_order:
             if len(self.deck) == 0:  # last round, last player draws briscola
-                self.hand[player].draw_replacement(draw_briscola_last_round=self.briscola)
+                self.players_hands[player].draw_replacement(draw_briscola_last_round=self.briscola)
             else:
-                self.hand[player].draw_replacement()
+                self.players_hands[player].draw_replacement()
         self.phase = "P"
 
     def _who_takes(self, table: list[type(Card(0, 0))] | Table, starting_player: int) -> (int, int):
@@ -170,7 +166,4 @@ class BriscolaEnv:
         if save_name:
             agent.model.save_weights(save_name)
 
-    def _hand_to_string(self, hand, spaces=10):
-        sp = " " * spaces + "|" + " " * spaces
-        return f"{hand[0]}" + sp + f"{hand[1]}" + sp + f"{hand[2]}"
 

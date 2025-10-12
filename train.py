@@ -4,28 +4,8 @@ from tqdm import tqdm
 
 from src.Briscola import BriscolaEnv
 from src.types.Agents import RandomAgent
-
-
 from src.types.DLAgents import DLAgent
 
-
-# def test_env(model_path):
-#     # check saved
-#     MA = DLAgent(model_path=model_path)
-#     brisc = np.array([[0, 0, 8, 0]])
-#     table = np.array([[0, 0, 0, 15]])
-#     hand = [np.array([[10, 0, 0, 0]]), np.array([[0, 15, 0, 0]]), np.array([[0, 0, 2, 0]])]
-#
-#     q_val = MA.model.predict([brisc, table] + hand, verbose=0)
-#     print("play briscola? 3", q_val)
-#
-#     table = np.array([[0, 2, 0, 0]])
-#     q_val = MA.model.predict([brisc, table] + hand, verbose=0)
-#     print("play ace? 2", q_val)
-#
-#     table = np.array([[4, 0, 0, 0]])
-#     q_val = MA.model.predict([brisc, table] + hand, verbose=0)
-#     print("play king? 1", q_val)
 
 def simulate_games(train_episodes=2, save_name=None):
     env = BriscolaEnv(2)
@@ -42,14 +22,9 @@ def simulate_games(train_episodes=2, save_name=None):
         full_df.to_csv(save_name)
 
 
-
-
-
-
-
 def train_agents():
     env = BriscolaEnv(2)
-    MA = DLAgent()
+    dl_agent = DLAgent()
 
     from src.types.Card import Card
     observation2 = [Card(2, 0),
@@ -63,12 +38,12 @@ def train_agents():
     hand1 = observation2[3].ia().reshape(1, 4)
     hand2 = observation2[4].ia().reshape(1, 4)
 
-    vec1 = MA.model.predict([brisc, table,hand0, hand1, hand2], verbose=0)
+    vec1 = dl_agent.model.predict([brisc, table, hand0, hand1, hand2], verbose=0)
 
     # df = env.simulate_games(MA, 2)
-    env.train_model(MA, df, epochs=20, save_name="briscola_model.weights.h5")
-    vec2 = MA.model.predict([brisc, table, hand0, hand1, hand2], verbose=0)
-    print(vec1,vec2)
+    env.train_model(dl_agent, df, epochs=20, save_name="briscola_model.weights.h5")
+    vec2 = dl_agent.model.predict([brisc, table, hand0, hand1, hand2], verbose=0)
+    print(vec1, vec2)
 
 
 # play(model_path="briscola_model.weights.h5")

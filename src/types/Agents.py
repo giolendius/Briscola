@@ -34,8 +34,8 @@ class RandomAgent(Agent):
 
 
 class AgentOnlyFirst(Agent):
-    def action(self, observation: Observation) -> (int, float):
-        return min([i - 1 for i in range(1, 4) if observation[i].val]), 0
+    def action(self, observation: Observation):
+        return Action(min(observation.indices_card_in_hand())), 0
 
 
 class Human(Agent):
@@ -45,4 +45,4 @@ class Human(Agent):
         action_chosen = self.action_chosen
         if action_chosen != Action.not_chosen_yet:
             self.action_chosen = Action.not_chosen_yet
-        return action_chosen, np.array([0,0,0])
+        return action_chosen, np.array([0, 0, 0])

@@ -1,5 +1,5 @@
 import numpy as np
-from typing import List, Optional, cast
+from typing import List, Dict, Optional, cast, Literal
 from dataclasses import dataclass, fields
 
 from .enums import Action
@@ -11,8 +11,8 @@ _all_possible_val = [2, 4, 5, 6, 7, 8, 9, 10, 13, 15]
 suit_dictionary = {0: "Bastoni", 1: "Coppe", 2: "Denari", 3: "Spade"}
 suit_dic = {0: "Ba", 1: "Co", 2: "De", 3: "Sp"}
 
-class Card:
 
+class Card:
     card_dic = {x: f"{x}" for x in range(4, 8)} | {2: "2", 8: "Fante", 9: "Cav", 10: "Re", 13: "3", 15: "Asso"}
     points_dic = {8: 2, 9: 3, 10: 4, 13: 10, 15: 11}
 
@@ -146,6 +146,14 @@ class Hand(SetOfCards):
         sp = " " * spaces + "|" + " " * spaces
         return f"{self[0]}" + sp + f"{self[1]}" + sp + f"{self[2]}"
 
+    def display(self, hidden: bool = False, spaces=10) -> str:
+        sp = " " * spaces + "|" + " " * spaces
+        if not hidden:
+            show = f"{self[0]}" + sp + f"{self[1]}" + sp + f"{self[2]}"
+        else:
+            show = f"{Card(0, 0)}" + sp + f"{Card(0, 0)}" + sp + f"{Card(0, 0)}"
+        return show
+
     def play_this_card(self, index: Action):
         """Returns the chosen card and removes it from the Hand"""
         if isinstance(index, Action):
@@ -170,7 +178,7 @@ class Hand(SetOfCards):
                 return
         print("no pescato")
 
-
+players_hands = Dict[int, Hand]
 
 @dataclass
 class Observation:
@@ -191,6 +199,7 @@ class Observation:
                    table1=table[1] if len(table) > 1 else Card(None, 0))
 
     def indices_card_in_hand(self) -> List[int]:
+        """returns list with 0,1,2 if index in hand"""
         return [i for i, card in enumerate([self.hand0, self.hand1, self.hand2]) if card]
     # def predict_form(self):
     #     return [self.briscola.ia().reshape(1,4)]+self.table.ia()+self.hand.ia()
