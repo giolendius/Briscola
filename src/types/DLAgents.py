@@ -1,12 +1,7 @@
-from abc import ABC, abstractmethod
 import numpy as np
 from keras import Input, layers, models, optimizers
 import tensorflow as tf
-from random import choice
-
-from src.Card import Observation
-
-namelist = ["Pieruc", "Iuanin", "Barbacec", "Vecia", "Pinotu", "Parin", "Lenciu"]
+from src.types import Agents
 
 
 def boltzmann(q_val, gamma=12) -> int:
@@ -16,34 +11,7 @@ def boltzmann(q_val, gamma=12) -> int:
     return int(np.random.choice(range(num_actions), p=a))
 
 
-class Agent(ABC):
-    def __init__(self, name=None):
-        if name:
-            self.name = name
-        else:
-            self.name = choice(namelist)
 
-    @abstractmethod
-    def action(self, observation: Observation) -> (int, np.array):
-        pass
-
-    def __str__(self):
-        return self.name
-
-    def __repr__(self):
-        return type(self).__name__ + ": "+self.name
-
-
-class RandomAgent(Agent):
-    """An agent who plays a random card of the available ones"""
-    def action(self, observation) -> (int, float):
-        poss = observation.hand.indices_card_in_hand()
-        return choice(poss), 0
-
-
-class AgentOnlyFirst(Agent):
-    def action(self, observation):
-        return min([i - 1 for i in range(1, 4) if observation[i].val]), 0
 
 
 class IsBriscola(layers.Layer):
@@ -72,7 +40,7 @@ class IsBriscola(layers.Layer):
         return "Is Briscola L"
 
 
-class CoolAgent(Agent):
+class DLAgent(Agents.Agent):
     """Create a new DL agent. If model is not provided, a new model is created.
     Else, it is loaded from the specified path"""
 
@@ -86,39 +54,7 @@ class CoolAgent(Agent):
                            metrics=["mse"])
 
     def build_model(self):
-        from keras import Input, layers, models, optimizers
-
-        brisc = Input(shape=(4,), name="brisc")
-        table = Input(shape=(4,), name="table")
-
-        ###shared
-        input_layer = Input(shape=(4,))
-        played_ren = input_layer #/ 15
-        table_ren = table #/ 15
-        tb = IsBriscola()(table_ren, brisc)
-        pb = IsBriscola()(played_ren, brisc)
-        concat_l = layers.Concatenate(axis=1, name=f"ConcHand")([table_ren, tb, played_ren, pb])
-        core_1 = layers.Dense(10, activation="relu", name="core1")(concat_l)
-        core_2 = layers.Dense(10, activation="relu", name="core2")(core_1)
-        outer1 = layers.Dense(1, name="outer1")(core_2)
-        outer2 = layers.Dense(1, name="outer2")(core_2)
-        final = outer1*outer2
-
-        shared_model = models.Model(inputs=[brisc, table, input_layer], outputs=final, name="inner_model")
-
-        h1 = Input(shape=(4,), name=f"hand1")
-        h2 = Input(shape=(4,), name=f"hand2")
-        h3 = Input(shape=(4,), name=f"hand3")
-
-        output1 = shared_model([brisc, table, h1])
-        output2 = shared_model([brisc, table, h2])
-        output3 = shared_model([brisc, table, h3])
-
-        out = layers.concatenate([output1,output2,output3])
-        self.model = models.Model(inputs=[brisc, table, h1, h2, h3], outputs=out, name="CoolModel")
-
-    def build_model2(self):
-        from keras import Input, layers, models, optimizers
+        from keras import Input, layers, models
 
         brisc = Input(shape=(4,), name="brisc")
         table = Input(shape=(4,), name="table")
@@ -143,11 +79,13 @@ class CoolAgent(Agent):
             z4 = core4(z3)
             outp[i] = z4
         out = layers.concatenate(outp)
+        # whole_hand=tf.constant(whole_hand)
+        # out=layers.Concatenate()([whole_hand])
         modellobello = models.Model(inputs=[brisc, table] + ini_hand, outputs=out)
         self.model = modellobello
 
-    def action(self, observation: Observation, policy="Boltzmann"):  # observation : list[type(Card(0,0))]
-
+    def action(self, observation: Agents.Observation, policy="Boltzmann"):  # observation : list[type(Card(0,0))]
+        # FIXME check after observation change
         possibilities = observation.hand.indices_card_in_hand()
         q_val = self.model.predict(observation.predict_form(), verbose=0)
         if np.isnan(q_val).any() or np.isinf(q_val).any():
@@ -164,7 +102,7 @@ class CoolAgent(Agent):
         return action, q_val
 
 
-class Agentepercapire(Agent):
+class Agentepercapire(Agents.Agent):
     def __init__(self, name=None, model_path=None):
         super().__init__(name)
         self.model = self.build_model()
@@ -194,9 +132,9 @@ class Agentepercapire(Agent):
 
 
 if __name__ == '__main__':
-    from src.Card import Card, Observation,Hand, Deck, BriscolaCard, SetOfCards
+    from src.types.Card import Card, Observation,Hand, Deck, BriscolaCard, SetOfCards
 
-    ag = CoolAgent()
+    ag = DLAgent()
 
     d=Deck()
     d = Deck()

@@ -1,0 +1,8 @@
+from enum import Enum
+
+
+class Action(Enum):
+    first_card = 0
+    second_card = 1
+    third_card = 2
+    not_chosen_yet = None
