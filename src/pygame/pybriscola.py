@@ -1,9 +1,10 @@
 import pygame
-from typing import List
+from typing import List, Tuple
 
 from ..Briscola import BriscolaEnv
 from ..types.Agents import Agent, Human
 from ..types.enums import Action
+from .pygame_utils import *
 
 SCREEN_W = 1000
 SCREEN_H = 800
@@ -20,6 +21,8 @@ class PyBriscolaEnv(BriscolaEnv):
         self.delay_play = delay_play
         self.delay_end_round = delay_end_round
 
+        self.card_image_sheet = get_card_sheet()
+
     def initial_checks(self, agents):
         assert self.tot_players == len(agents)
         assert not any([isinstance(a, Human) for a in agents[1:]]), 'Human player first pos'
@@ -32,6 +35,7 @@ class PyBriscolaEnv(BriscolaEnv):
         pygame.init()
         pygame.display.set_caption("Love Briscola")
 
+        SpriteCard((500, 400), self)
         self.running = True
         while self.running:
             for evento in pygame.event.get():
@@ -82,17 +86,27 @@ class PyBriscolaEnv(BriscolaEnv):
         text(self.screen, self.players_hands[1].display(True), (00, 150))
         text(self.screen, f"{agents[1]}:      score {self.points[1]}", (0, 100))
 
+        sprite_card_group.draw(self.screen)
+        sprite_card_group.update()
+
         if ((pygame.time.get_ticks() - self.tempo[0] > self.delay_play)
                 and not self.flg_pause
                 and not self.awaiting_user_input):
             self.game_engine(agents)
             self.tempo[0] = pygame.time.get_ticks()
 
+    def _play_a_card(self, agents):
+        super()._play_a_card(agents)
+        print('metodo super')
 
-def text(screen, txt: str, posit, color=(0, 0, 0), size=40):
+
+def text(screen, txt: str, posit: Tuple[int, int], color=(0, 0, 0), size=40):
     """Writes text on the pygame screen"""
     pos = (SCREEN_W // 2 + posit[0], posit[1])
-    font = pygame.font.Font("Pixeltype.ttf", size)
+    font = pygame.font.Font("src/asset/Pixeltype.ttf", size)
     txt_surf = font.render(txt, False, color)
     text_rect = txt_surf.get_rect(midtop=pos)
     screen.blit(txt_surf, text_rect)
+
+
+
