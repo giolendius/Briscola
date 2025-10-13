@@ -1,15 +1,16 @@
 import numpy as np
-from typing import List, Dict, Optional, cast, Literal
+from typing import List, Dict, Optional, cast, Literal, Iterator
 from dataclasses import dataclass, fields
 
+from src.pygame.pygame_utils import assign_sprite
 from .enums import Action
 
 
 # from loguru import logger
 
 _all_possible_val = [2, 4, 5, 6, 7, 8, 9, 10, 13, 15]
-suit_dictionary = {0: "Bastoni", 1: "Coppe", 2: "Denari", 3: "Spade"}
-suit_dic = {0: "Ba", 1: "Co", 2: "De", 3: "Sp"}
+suit_dictionary = {2: "Bastoni", 1: "Coppe", 0: "Denari", 3: "Spade"}
+suit_dic = {val: suit[0:2] for val, suit in suit_dictionary.items()}
 
 
 class Card:
@@ -25,6 +26,7 @@ class Card:
             self.suit: int = suit
         else:
             raise Exception("Il seme della carta non è valido. Dichiarare seme con intero 0-3")
+        self.sprite = None
 
     def ia(self):
         """Output the card as tensor of shape (4,)"""
@@ -63,7 +65,7 @@ class Card:
 
 class SetOfCards:
     def __init__(self, list_of_cards: List[Card] = None):
-        self.cards = list_of_cards if list_of_cards else []
+        self.cards: List[Card] = list_of_cards if list_of_cards else []
         self.name = 'SetOfCards'
 
     def draw_random(self) -> Card | None:
@@ -76,6 +78,9 @@ class SetOfCards:
 
     def __len__(self):
         return len(self.cards)
+
+    def __iter__(self) -> Iterator[Card]:
+        return iter(self.cards)
 
     def __add__(self, other):
         if isinstance(other, Card):
@@ -97,8 +102,13 @@ class SetOfCards:
         elif isinstance(index, slice):
             return type(self)(self.cards[index])
 
-    def __setitem__(self, key, value):
-        self.cards[key] = value
+    def __setitem__(self, key, card: Card):
+        if not isinstance(card, Card):
+            raise Exception("Puoi assegnare solo una carta")
+        self.cards[key] = card
+        if card.sprite:
+            print(type(self))
+            assign_sprite(self)
 
     def __bool__(self):
         return bool(self.cards[0])
@@ -107,7 +117,7 @@ class SetOfCards:
         """Returns a list of the cards.ia()"""
         return [card.ia().reshape(1,4) for card in self.cards]
 
-    # def to_dict(self):
+
 
 class Table(SetOfCards):
     def __init__(self, list_of_cards: List[Card] = None):
@@ -124,9 +134,10 @@ class Deck(SetOfCards):
 
 class BriscolaCard(Card, SetOfCards):
     def __init__(self, deck):
+        """Create an instance of BriscolaCard, which is both a Card and a SetOfCards with one card: itself"""
         briscola_card = deck.draw_random()
-        super().__init__(briscola_card.val, briscola_card.suit)
-        self.cards = [briscola_card]
+        super().__init__(briscola_card.val, briscola_card.suit) #call Card init
+        self.cards = [self]
 
     def __repr__(self):
         return type(self).__name__+f"({self.val},{self.suit})"
@@ -156,12 +167,10 @@ class Hand(SetOfCards):
 
     def play_this_card(self, index: Action):
         """Returns the chosen card and removes it from the Hand"""
-        if isinstance(index, Action):
-            index = index.value
-        else:
-            raise ValueError('problema con Azione e interi')
-        played_card = self[index]
-        self[index] = Card(None, 0)
+        played_card = self[index.value]
+        if played_card.sprite:
+            played_card.sprite.kill()
+        self[index.value] = Card(None, 0)
         return played_card
 
     def indices_card_in_hand(self) -> List[int]:

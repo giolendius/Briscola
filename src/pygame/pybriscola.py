@@ -30,12 +30,23 @@ class PyBriscolaEnv(BriscolaEnv):
         if isinstance(agents[0], Human):
             pass
 
+    def all_card_images_now(self):
+        assign_sprite(self.briscola)
+        for num_hand, hand in self.players_hands.items():
+            assign_sprite(hand, num_hand)
+            print(hand)
+        #         d = {'type': type(hand), 'num_p': num_hand, 'num_card': i}
+                # SpriteCard(d, card, self.card_image_sheet)
+
+        # SpriteCard({'type': 2, 'num_card': 1}, Card(8,2), self.card_image_sheet)
+
     def run_env(self, agents: List[Agent]):
         self.initial_checks(agents)
         pygame.init()
         pygame.display.set_caption("Love Briscola")
 
-        SpriteCard((500, 400), self)
+
+        self.all_card_images_now()
         self.running = True
         while self.running:
             for evento in pygame.event.get():
@@ -108,5 +119,9 @@ def text(screen, txt: str, posit: Tuple[int, int], color=(0, 0, 0), size=40):
     text_rect = txt_surf.get_rect(midtop=pos)
     screen.blit(txt_surf, text_rect)
 
+
+def assign_sprite(card_set: SetOfCards, hand_number: int = 1):
+    for i, card in enumerate(card_set):
+        card.sprite = SpriteCard({'type': type(card_set), 'hand_number': hand_number, 'num_card': i}, card, get_card_sheet())
 
 
