@@ -8,6 +8,7 @@ from ..types.Card import Card, Hand, Table, BriscolaCard, SetOfCards
 SCREEN_W = 1000
 SCREEN_H = 800
 HAND_HEIGHT_POS = 260
+TABLE_HEIGHT_POS = 40
 CARD_DISTANCE = 100
 
 l = 5
@@ -17,22 +18,23 @@ sprite_card_group = pygame.sprite.Group()
 def get_card_sheet():
     #735, 502
     #ori, coppe, bastoni, spade
+    print('carico immagine')
     image = pygame.image.load("src/asset/carte.png").convert_alpha()
     return image
 
 def image_position_in_sheet(card: Card) -> [float, float, float, float]:
     """returns x,y,w,h"""
     w, h = 73.5, 125.5
-    x,y = {15:0, 2:1, 13:2, 4:3, 5:4, 6:5,7:6, 8:7, 9:8, 10:9}[card.val]*w, card.suit * h
+    x,y = {15:0, 2:1, 13:2, 4:3, 5:4, 6:5,7:6, 8:7, 9:8, 10:9, None:2}[card.val]*w, card.suit * h
     return x, y, w ,h
 
 def card_position_in_screen(position_dict) -> array:
     center = array([SCREEN_W//2, SCREEN_H//2])
     tipo = position_dict['type']
     if tipo == Hand:
-        card_set_type = array([0, -(position_dict['hand_number']*2-1)*HAND_HEIGHT_POS])
+        card_set_type = array([0, -(position_dict['player_number']*2-1)*HAND_HEIGHT_POS])
     elif tipo == Table:
-        card_set_type = array([0, 0])
+        card_set_type = array([0, -(position_dict['player_number']*2-1)*TABLE_HEIGHT_POS])
     elif tipo == BriscolaCard:
         card_set_type = array([-SCREEN_W//2 +2*card_w, 50])
     else:
@@ -41,9 +43,10 @@ def card_position_in_screen(position_dict) -> array:
     return center+card_set_type+card_pos
 
 
-def assign_sprite(card_set: SetOfCards, hand_number: int = 1):
+def assign_sprite(card_set: SetOfCards|Card, player_number: int = 1,):
     for i, card in enumerate(card_set):
-        card.sprite = SpriteCard({'type': type(card_set), 'hand_number': hand_number, 'num_card': i}, card, get_card_sheet())
+        dizio = {'type': type(card_set), 'player_number': player_number, 'num_card': i}
+        card.sprite = SpriteCard(dizio, card, get_card_sheet())
 
 
 class SpriteCard(Sprite):

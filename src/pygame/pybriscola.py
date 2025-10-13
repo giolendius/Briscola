@@ -108,8 +108,8 @@ class PyBriscolaEnv(BriscolaEnv):
 
     def _play_a_card(self, agents):
         cur_player = super()._play_a_card(agents)
-        print(f"Player {cur_player} played {self.table[cur_player]}")
-        #assign_sprite(self.table[cur_player])
+        if cur_player: #if a card was played
+            assign_sprite(self.table[cur_player:cur_player+1], player_number=cur_player)
 
 
 def text(screen, txt: str, posit: Tuple[int, int], color=(0, 0, 0), size=40):

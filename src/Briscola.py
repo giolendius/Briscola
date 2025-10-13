@@ -75,17 +75,18 @@ class BriscolaEnv:
         if azione == Action.not_chosen_yet:
             self.awaiting_user_input = True
         else:
-            if self.current_player == protagonist:
+            cur = self.current_player
+            if cur == protagonist:
                 self.turn_memory = TurnMemory(turn=self.turn,
                                               observation=observation,
                                               action=azione.value)
 
-            self.table[self.current_player] = self.players_hands[self.current_player].play_this_card(azione)
-            self.current_player = (self.current_player + 1) % self.tot_players
+            self.table[cur] = self.players_hands[cur].play_this_card(azione)
+            self.current_player = (cur + 1) % self.tot_players
 
             if self.current_player == self.starting_player:
                 self.phase = "C"
-            return self.current_player
+            return cur
 
     def _end_round_operations(self):
         # determine who takes
