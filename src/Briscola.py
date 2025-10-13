@@ -85,6 +85,7 @@ class BriscolaEnv:
 
             if self.current_player == self.starting_player:
                 self.phase = "C"
+            return self.current_player
 
     def _end_round_operations(self):
         # determine who takes

@@ -41,6 +41,10 @@ def card_position_in_screen(position_dict) -> array:
     return center+card_set_type+card_pos
 
 
+def assign_sprite(card_set: SetOfCards, hand_number: int = 1):
+    for i, card in enumerate(card_set):
+        card.sprite = SpriteCard({'type': type(card_set), 'hand_number': hand_number, 'num_card': i}, card, get_card_sheet())
+
 
 class SpriteCard(Sprite):
     def __init__(self, position_dict: dict, card: Card, all_card_sheet: pygame.image):

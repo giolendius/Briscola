@@ -2,7 +2,6 @@ import numpy as np
 from typing import List, Dict, Optional, cast, Literal, Iterator
 from dataclasses import dataclass, fields
 
-from src.pygame.pygame_utils import assign_sprite
 from .enums import Action
 
 
@@ -106,9 +105,6 @@ class SetOfCards:
         if not isinstance(card, Card):
             raise Exception("Puoi assegnare solo una carta")
         self.cards[key] = card
-        if card.sprite:
-            print(type(self))
-            assign_sprite(self)
 
     def __bool__(self):
         return bool(self.cards[0])

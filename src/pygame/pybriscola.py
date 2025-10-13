@@ -107,8 +107,9 @@ class PyBriscolaEnv(BriscolaEnv):
             self.tempo[0] = pygame.time.get_ticks()
 
     def _play_a_card(self, agents):
-        super()._play_a_card(agents)
-        print('metodo super')
+        cur_player = super()._play_a_card(agents)
+        print(f"Player {cur_player} played {self.table[cur_player]}")
+        #assign_sprite(self.table[cur_player])
 
 
 def text(screen, txt: str, posit: Tuple[int, int], color=(0, 0, 0), size=40):
@@ -119,9 +120,5 @@ def text(screen, txt: str, posit: Tuple[int, int], color=(0, 0, 0), size=40):
     text_rect = txt_surf.get_rect(midtop=pos)
     screen.blit(txt_surf, text_rect)
 
-
-def assign_sprite(card_set: SetOfCards, hand_number: int = 1):
-    for i, card in enumerate(card_set):
-        card.sprite = SpriteCard({'type': type(card_set), 'hand_number': hand_number, 'num_card': i}, card, get_card_sheet())
 
 
