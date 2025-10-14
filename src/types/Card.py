@@ -25,7 +25,6 @@ class Card:
             self.suit: int = suit
         else:
             raise Exception("Il seme della carta non è valido. Dichiarare seme con intero 0-3")
-        self.sprite = None
 
     def ia(self):
         """Output the card as tensor of shape (4,)"""
@@ -65,7 +64,6 @@ class Card:
 class SetOfCards:
     def __init__(self, list_of_cards: List[Card] = None):
         self.cards: List[Card] = list_of_cards if list_of_cards else []
-        self.name = 'SetOfCards'
 
     def draw_random(self) -> Card | None:
         """Remove a random card from this set and returns it"""
@@ -99,11 +97,12 @@ class SetOfCards:
         if isinstance(index, (int, np.int64)):
             return self.cards[index]
         elif isinstance(index, slice):
-            return type(self)(self.cards[index])
+            return type(self)(list_of_cards = self.cards[index])
 
     def __setitem__(self, key, card: Card):
+        print('use setitem')
         if not isinstance(card, Card):
-            raise Exception("Puoi assegnare solo una carta")
+            raise Exception("Puoi assegnare solo oggetti 'carta'")
         self.cards[key] = card
 
     def __bool__(self):
@@ -116,9 +115,13 @@ class SetOfCards:
 
 
 class Table(SetOfCards):
-    def __init__(self, list_of_cards: List[Card] = None):
+    def __init__(self, list_of_cards: List[Card] = None, n_players: int = None):
+        if not list_of_cards:
+            list_of_cards = [Card(None, 0) for _ in range(n_players)]
         super().__init__(list_of_cards)
-        self.name = 'Table'
+
+    def empty(self):
+        self.cards = [Card(None, 0) for _ in range(len(self.cards))]
 
 
 class Deck(SetOfCards):
@@ -164,8 +167,6 @@ class Hand(SetOfCards):
     def play_this_card(self, index: Action):
         """Returns the chosen card and removes it from the Hand"""
         played_card = self[index.value]
-        if played_card.sprite:
-            played_card.sprite.kill()
         self[index.value] = Card(None, 0)
         return played_card
 
@@ -177,9 +178,9 @@ class Hand(SetOfCards):
         for i, position in enumerate(self.cards):
             if not position:
                 if not draw_briscola_last_round:
-                    self.cards[i] = self.deck.draw_random()
+                    self[i] = self.deck.draw_random()
                 else:
-                    self.cards[i] = draw_briscola_last_round
+                    self[i] = draw_briscola_last_round
                 return
         print("no pescato")
 

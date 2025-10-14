@@ -38,12 +38,12 @@ class BriscolaEnv:
         self.starting_player = 0
         self.current_player = self.starting_player
         self.points = [0, 0] if self.teams else [0 for _ in range(self.tot_players)]
-
-        self.briscola = BriscolaCard(self.deck)
         self.players_hands = {}
-        self.table = Table([Card(None, 0) for _ in range(self.tot_players)])
         self.phase = "P"  # "P" play, "C" Calculates points "D" Draw
 
+    def initial_draws(self):
+        self.briscola = BriscolaCard(self.deck)
+        self.table = Table(self.tot_players)
         for player in range(self.tot_players):
             self.players_hands[player] = Hand(self.deck)
 
@@ -68,8 +68,8 @@ class BriscolaEnv:
 
         observation = Observation.from_sets(self.briscola,
                                             self.players_hands[self.current_player],
-                                            self.table[1:4])  # here we always exclude player 0, he IS playing
-
+                                            self.table)  # here we always exclude player 0, he IS playing
+        #TODO give self.table[1:4] back
         azione, q_val = agents[self.current_player].action(observation)
 
         if azione == Action.not_chosen_yet:
@@ -81,7 +81,8 @@ class BriscolaEnv:
                                               observation=observation,
                                               action=azione.value)
 
-            self.table[cur] = self.players_hands[cur].play_this_card(azione)
+            card = self.players_hands[cur].play_this_card(azione)
+            self.table[cur] = card
             self.current_player = (cur + 1) % self.tot_players
 
             if self.current_player == self.starting_player:
@@ -110,7 +111,7 @@ class BriscolaEnv:
         self.current_player = takes_player
         self.turn += 1
         self.message = ""
-        self.table = Table([Card(None, 0) for _ in range(self.tot_players)])
+        self.table.empty()
 
         self.turn_memory.reward = rewards[protagonist]
         self.game_memories.append(self.turn_memory)
@@ -146,6 +147,7 @@ class BriscolaEnv:
     def run_env(self, agents: list):
         """Run a single game"""
         self.reset()
+        self.initial_draws()
         self.running = True
         while self.running:
             self.game_engine(agents)

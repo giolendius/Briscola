@@ -8,25 +8,27 @@ from ..types.Card import Card, Hand, Table, BriscolaCard, SetOfCards
 SCREEN_W = 1000
 SCREEN_H = 800
 HAND_HEIGHT_POS = 260
-TABLE_HEIGHT_POS = 40
+TABLE_HEIGHT_POS = 60
 CARD_DISTANCE = 100
 
 l = 5
 card_w, card_h = 15.5*5, 24.5*5
-sprite_card_group = pygame.sprite.Group()
+# sprite_card_group = pygame.sprite.Group()
+counter = [0]
 
 def get_card_sheet():
     #735, 502
     #ori, coppe, bastoni, spade
-    print('carico immagine')
+    counter[0] += 1
+    print(f'carico immagine {counter[0]}')
     image = pygame.image.load("src/asset/carte.png").convert_alpha()
     return image
 
 def image_position_in_sheet(card: Card) -> [float, float, float, float]:
     """returns x,y,w,h"""
     w, h = 73.5, 125.5
-    x,y = {15:0, 2:1, 13:2, 4:3, 5:4, 6:5,7:6, 8:7, 9:8, 10:9, None:2}[card.val]*w, card.suit * h
-    return x, y, w ,h
+    x,y = {15:0, 2:1, 13:2, 4:3, 5:4, 6:5,7:6, 8:7, 9:8, 10:9, None:10}[card.val]*w, card.suit * h
+    return x, y, w, h
 
 def card_position_in_screen(position_dict) -> array:
     center = array([SCREEN_W//2, SCREEN_H//2])
@@ -39,7 +41,7 @@ def card_position_in_screen(position_dict) -> array:
         card_set_type = array([-SCREEN_W//2 +2*card_w, 50])
     else:
         raise Exception("Tipo di set di carte non valido")
-    card_pos = array([CARD_DISTANCE * (position_dict['num_card']-1), 0])
+    card_pos = array([CARD_DISTANCE * (position_dict.get('card_num',1)-1), 0])
     return center+card_set_type+card_pos
 
 
@@ -49,20 +51,10 @@ def assign_sprite(card_set: SetOfCards|Card, player_number: int = 1,):
         card.sprite = SpriteCard(dizio, card, get_card_sheet())
 
 
-class SpriteCard(Sprite):
-    def __init__(self, position_dict: dict, card: Card, all_card_sheet: pygame.image):
-        super().__init__(sprite_card_group)
+# class SpriteCard(Sprite):
+#     def __init__(self, position_dict: dict, card: Card, all_card_sheet: pygame.image):
 
-        x, y, w, h = image_position_in_sheet(card)
-        self.image = pygame.Surface([w,h])
-        self.image.blit(all_card_sheet, (0,0),(x,y, w, h))
-        self.image = pygame.transform.scale(self.image, (card_w, card_h))
 
-        position = card_position_in_screen(position_dict)
-        self.rect = self.image.get_rect(center=position)
 
-    def update(self):
-        pass
-        # self.rect.move_ip(20, 10)
 
 

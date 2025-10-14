@@ -1,10 +1,10 @@
-import pygame
 from typing import List, Tuple
 
 from ..Briscola import BriscolaEnv
 from ..types.Agents import Agent, Human
 from ..types.enums import Action
 from .pygame_utils import *
+from .pygame_card import PyTable, PyHand
 
 SCREEN_W = 1000
 SCREEN_H = 800
@@ -22,6 +22,15 @@ class PyBriscolaEnv(BriscolaEnv):
         self.delay_end_round = delay_end_round
 
         self.card_image_sheet = get_card_sheet()
+        self.sprite_card_group = pygame.sprite.Group()
+
+
+    def initial_draws(self):
+        self.briscola = BriscolaCard(self.deck)
+        self.table = PyTable(self.sprite_card_group, n_players=self.tot_players)
+        for player in range(self.tot_players):
+            self.players_hands[player] = PyHand(self.deck, self.sprite_card_group, player_num=player)
+
 
     def initial_checks(self, agents):
         assert self.tot_players == len(agents)
@@ -31,22 +40,20 @@ class PyBriscolaEnv(BriscolaEnv):
             pass
 
     def all_card_images_now(self):
-        assign_sprite(self.briscola)
+        # assign_sprite(self.briscola)
         for num_hand, hand in self.players_hands.items():
             assign_sprite(hand, num_hand)
-            print(hand)
-        #         d = {'type': type(hand), 'num_p': num_hand, 'num_card': i}
-                # SpriteCard(d, card, self.card_image_sheet)
 
-        # SpriteCard({'type': 2, 'num_card': 1}, Card(8,2), self.card_image_sheet)
 
     def run_env(self, agents: List[Agent]):
+        self.reset()
+        self.initial_draws()
         self.initial_checks(agents)
+        # self.all_card_images_now()
+
         pygame.init()
         pygame.display.set_caption("Love Briscola")
 
-
-        self.all_card_images_now()
         self.running = True
         while self.running:
             for evento in pygame.event.get():
@@ -86,31 +93,25 @@ class PyBriscolaEnv(BriscolaEnv):
             text(self.screen, f"It's your turn!", (0, 700), (180, 20, 20), size=60)
 
         text(self.screen, f"{agents[0]}:      score {self.points[0]}", (0, 650))
-        text(self.screen, self.players_hands[0].display(), (00, 600))
-        text(self.screen, f"{self.table[0]}", (0, 400))
+        text(self.screen, self.players_hands[0].display(), (00, 750))
+        text(self.screen, f"{self.table[0]}", (-120, 450))
 
         text(self.screen, f"{self.briscola}", (-400, 350))
         text(self.screen, f"Remaining: {len(self.deck)}, t={self.turn}", (400, 350))
         text(self.screen, f"{self.message}", (0, 350), size=20)
 
-        text(self.screen, f"{self.table[1]}", (0, 300))
-        text(self.screen, self.players_hands[1].display(True), (00, 150))
+        text(self.screen, f"{self.table[1]}", (-120, 350))
+        text(self.screen, self.players_hands[1].display(True), (00, 200))
         text(self.screen, f"{agents[1]}:      score {self.points[1]}", (0, 100))
 
-        sprite_card_group.draw(self.screen)
-        sprite_card_group.update()
+        self.sprite_card_group.draw(self.screen)
+        self.sprite_card_group.update()
 
         if ((pygame.time.get_ticks() - self.tempo[0] > self.delay_play)
                 and not self.flg_pause
                 and not self.awaiting_user_input):
             self.game_engine(agents)
             self.tempo[0] = pygame.time.get_ticks()
-
-    def _play_a_card(self, agents):
-        cur_player = super()._play_a_card(agents)
-        if cur_player: #if a card was played
-            assign_sprite(self.table[cur_player:cur_player+1], player_number=cur_player)
-
 
 def text(screen, txt: str, posit: Tuple[int, int], color=(0, 0, 0), size=40):
     """Writes text on the pygame screen"""
