@@ -75,7 +75,7 @@ class PyBriscolaEnv(BriscolaEnv):
                         elif evento.key == pygame.K_3:
                             self.awaiting_user_input = False
                             primo_giocatore.action_chosen = Action(2)
-
+            print(self.sprite_card_group)
             self.pygame_play_time(agents)
 
             pygame.display.update()

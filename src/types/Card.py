@@ -121,7 +121,8 @@ class Table(SetOfCards):
         super().__init__(list_of_cards)
 
     def empty(self):
-        self.cards = [Card(None, 0) for _ in range(len(self.cards))]
+        for player_num in range(len(self.cards)):
+            self[player_num] = Card(None, 0)
 
 
 class Deck(SetOfCards):

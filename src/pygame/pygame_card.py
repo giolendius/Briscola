@@ -8,7 +8,9 @@ from .pygame_utils import card_position_in_screen, image_position_in_sheet, card
 from ..types.enums import Action
 
 print('un import random')
-#sprite_card_group = pygame.sprite.Group()
+
+
+# sprite_card_group = pygame.sprite.Group()
 
 class PySpriteCard(c.Card, pygame.sprite.Sprite):
     def __init__(self, val: int | None,
@@ -43,33 +45,21 @@ class PyTable(c.Table):
     def __init__(self, sprite_card_group, list_of_cards=None, n_players=None):
         super().__init__(list_of_cards=list_of_cards, n_players=n_players)
         self.sprite_card_group = sprite_card_group
-
-        self.cards = [PySpriteCard(card.val,
-                                   card.suit,
-                                   position_dict={'type': c.Table, 'player_number': card_num},
-                                   all_card_sheet=get_card_sheet(),
-                                   sprite_card_group=self.sprite_card_group) for card_num, card in
-                      enumerate(self.cards)]
-
-    def empty(self):
-        self.cards = [PySpriteCard(None,
-                                   0,
-                                   position_dict={'type': c.Table, 'player_number': card_num},
-                                   all_card_sheet=get_card_sheet(),
-                                   sprite_card_group=self.sprite_card_group) for card_num, card in
-                      enumerate(self.cards)]
-
+        for player_num in range(len(self.cards)):
+            self[player_num] = self[player_num]
+            # this seems tautological, but actually convert card to pycard
 
     def __setitem__(self, key, card):
-        if not isinstance(card, PySpriteCard):
-            raise Exception("Puoi assegnare solo oggetti 'pycarte'")
-        else:
-            # card.kill()
+        if isinstance(self.cards[key], pygame.sprite.Sprite):
+            self.cards[key].kill()
+        if isinstance(card, c.Card):
             self.cards[key] = PySpriteCard(card.val,
                                            card.suit,
                                            position_dict={'type': c.Table, 'player_number': key},
                                            all_card_sheet=get_card_sheet(),
-                                           sprite_card_group=self.cards[key].groups()[0])
+                                           sprite_card_group=self.sprite_card_group)
+        else:
+            raise Exception("Puoi assegnare solo oggetti 'pycarte'")
 
 
 # class PyBriscolaCard(c.BriscolaCard, PySpriteCard):
@@ -85,21 +75,27 @@ class PyHand(c.Hand):
                  player_num):
         super().__init__(deck)
 
-        self.sprite_card_group=sprite_card_group
+        self.sprite_card_group = sprite_card_group
         self.player_num = player_num
         self.cards = [PySpriteCard(card.val,
                                    card.suit,
-                                   position_dict={'type': c.Hand, 'player_number': self.player_num, 'card_num': card_num},
+                                   position_dict={'type': c.Hand, 'player_number': self.player_num,
+                                                  'card_num': card_num},
                                    all_card_sheet=get_card_sheet(),
                                    sprite_card_group=sprite_card_group) for card_num, card in enumerate(self.cards)]
 
     def __setitem__(self, key, value):
+        if isinstance(self.cards[key], pygame.sprite.Sprite):
+            self.cards[key].kill()
         if isinstance(value, c.Card):
             self.cards[key] = PySpriteCard(value.val,
                                            value.suit,
-                                           position_dict={'type': c.Hand, 'player_number': self.player_num, 'card_num': key},
+                                           position_dict={'type': c.Hand, 'player_number': self.player_num,
+                                                          'card_num': key},
                                            all_card_sheet=get_card_sheet(),
                                            sprite_card_group=self.sprite_card_group)
+        else:
+            raise 'che stai facendo? qua ci va una card'
 
     def play_this_card(self, index: Action) -> PySpriteCard:
         played_card = super().play_this_card(index)
