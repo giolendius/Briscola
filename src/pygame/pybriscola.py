@@ -4,8 +4,7 @@ from ..Briscola import BriscolaEnv
 from ..types.Agents import Agent, Human
 from ..types.enums import Action
 from .pygame_utils import *
-from .pygame_card import PyTable, PyHand
-
+from .pygame_card import PyTable, PyHand, sprite_group, Container
 SCREEN_W = 1000
 SCREEN_H = 800
 
@@ -21,16 +20,11 @@ class PyBriscolaEnv(BriscolaEnv):
         self.delay_play = delay_play
         self.delay_end_round = delay_end_round
 
-        self.card_image_sheet = get_card_sheet()
-        self.sprite_card_group = pygame.sprite.Group()
-
-
     def initial_draws(self):
         self.briscola = BriscolaCard(self.deck)
-        self.table = PyTable(self.sprite_card_group, n_players=self.tot_players)
+        self.table = PyTable(n_players=self.tot_players)
         for player in range(self.tot_players):
-            self.players_hands[player] = PyHand(self.deck, self.sprite_card_group, player_num=player)
-
+            self.players_hands[player] = PyHand(self.deck, player_num=player)
 
     def initial_checks(self, agents):
         assert self.tot_players == len(agents)
@@ -44,15 +38,13 @@ class PyBriscolaEnv(BriscolaEnv):
         for num_hand, hand in self.players_hands.items():
             assign_sprite(hand, num_hand)
 
-
     def run_env(self, agents: List[Agent]):
         self.reset()
-        self.initial_draws()
-        self.initial_checks(agents)
-        # self.all_card_images_now()
-
         pygame.init()
         pygame.display.set_caption("Love Briscola")
+        Container.card_images_sheet = get_card_sheet()
+        self.initial_draws()
+        self.initial_checks(agents)
 
         self.running = True
         while self.running:
@@ -75,7 +67,7 @@ class PyBriscolaEnv(BriscolaEnv):
                         elif evento.key == pygame.K_3:
                             self.awaiting_user_input = False
                             primo_giocatore.action_chosen = Action(2)
-            print(self.sprite_card_group)
+
             self.pygame_play_time(agents)
 
             pygame.display.update()
@@ -87,7 +79,7 @@ class PyBriscolaEnv(BriscolaEnv):
         self.screen.fill((62, 184, 99))
 
         if self.flg_pause:
-            text(self.screen, f"Game pause! Press P to resume", (50,50))
+            text(self.screen, f"Game pause! Press P to resume", (50, 50))
 
         if self.awaiting_user_input:
             text(self.screen, f"It's your turn!", (350, 650), (180, 20, 20), size=60)
@@ -104,14 +96,15 @@ class PyBriscolaEnv(BriscolaEnv):
         text(self.screen, self.players_hands[1].display(False), (00, 200), size=26)
         text(self.screen, f"{agents[1]}:      score {self.points[1]}", (0, 40))
 
-        self.sprite_card_group.draw(self.screen)
-        self.sprite_card_group.update()
+        sprite_group.draw(self.screen)
+        sprite_group.update()
 
         if ((pygame.time.get_ticks() - self.tempo[0] > self.delay_play)
                 and not self.flg_pause
                 and not self.awaiting_user_input):
             self.game_engine(agents)
             self.tempo[0] = pygame.time.get_ticks()
+
 
 def text(screen, txt: str, posit: Tuple[int, int], color=(0, 0, 0), size=40):
     """Writes text on the pygame screen"""
@@ -120,6 +113,3 @@ def text(screen, txt: str, posit: Tuple[int, int], color=(0, 0, 0), size=40):
     txt_surf = font.render(txt, False, color)
     text_rect = txt_surf.get_rect(midtop=pos)
     screen.blit(txt_surf, text_rect)
-
-
-

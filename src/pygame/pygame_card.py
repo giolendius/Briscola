@@ -7,26 +7,31 @@ import pygame
 from .pygame_utils import card_position_in_screen, image_position_in_sheet, card_h, card_w
 from ..types.enums import Action
 
-print('un import random')
+sprite_group = pygame.sprite.Group()
 
 
-# sprite_card_group = pygame.sprite.Group()
+class Container:
+    """A class to contain static objects"""
+    card_images_sheet = None
+
 
 class PySpriteCard(c.Card, pygame.sprite.Sprite):
     def __init__(self, val: int | None,
                  suit: int,
                  position_dict: dict,
-                 sprite_card_group,
-                 all_card_sheet: pygame.image,
+                 visible: bool = True
                  ):
         c.Card.__init__(self, val, suit)
-        pygame.sprite.Sprite.__init__(self, sprite_card_group)
-        self.image, self.rect = self._get_image_and_rect(position_dict, all_card_sheet)
+        pygame.sprite.Sprite.__init__(self, sprite_group)
+        self.image, self.rect = self._get_image_and_rect(position_dict, visible)
 
-    def _get_image_and_rect(self, position_dict, all_card_sheet: pygame.image):
+    def _get_image_and_rect(self, position_dict, visible):
         x, y, w, h = image_position_in_sheet(self)
         image = pygame.Surface([w, h])
-        image.blit(all_card_sheet, (0, 0), (x, y, w, h))
+        if visible:
+            image.blit(Container.card_images_sheet, (0, 0), (x, y, w, h))
+        # blit on the small rectangle the sub-image of card_sheet with dimensions(w,h)
+        # whose top-left corner is on (x,y) of the sheet
         image = pygame.transform.scale(image, (card_w, card_h))
 
         position = card_position_in_screen(position_dict)
@@ -42,9 +47,8 @@ class PySpriteCard(c.Card, pygame.sprite.Sprite):
 
 
 class PyTable(c.Table):
-    def __init__(self, sprite_card_group, list_of_cards=None, n_players=None):
+    def __init__(self, list_of_cards=None, n_players=None):
         super().__init__(list_of_cards=list_of_cards, n_players=n_players)
-        self.sprite_card_group = sprite_card_group
         for player_num in range(len(self.cards)):
             self[player_num] = self[player_num]
             # this seems tautological, but actually convert card to pycard
@@ -55,9 +59,7 @@ class PyTable(c.Table):
         if isinstance(card, c.Card):
             self.cards[key] = PySpriteCard(card.val,
                                            card.suit,
-                                           position_dict={'type': c.Table, 'player_number': key},
-                                           all_card_sheet=get_card_sheet(),
-                                           sprite_card_group=self.sprite_card_group)
+                                           position_dict={'type': c.Table, 'player_number': key})
         else:
             raise Exception("Puoi assegnare solo oggetti 'pycarte'")
 
@@ -71,18 +73,15 @@ class PyTable(c.Table):
 class PyHand(c.Hand):
     def __init__(self,
                  deck: c.Deck,
-                 sprite_card_group: pygame.sprite.Group,
                  player_num):
         super().__init__(deck)
 
-        self.sprite_card_group = sprite_card_group
         self.player_num = player_num
         self.cards = [PySpriteCard(card.val,
                                    card.suit,
                                    position_dict={'type': c.Hand, 'player_number': self.player_num,
                                                   'card_num': card_num},
-                                   all_card_sheet=get_card_sheet(),
-                                   sprite_card_group=sprite_card_group) for card_num, card in enumerate(self.cards)]
+                                   visible=self.player_num == 0) for card_num, card in enumerate(self.cards)]
 
     def __setitem__(self, key, value):
         if isinstance(self.cards[key], pygame.sprite.Sprite):
@@ -92,8 +91,7 @@ class PyHand(c.Hand):
                                            value.suit,
                                            position_dict={'type': c.Hand, 'player_number': self.player_num,
                                                           'card_num': key},
-                                           all_card_sheet=get_card_sheet(),
-                                           sprite_card_group=self.sprite_card_group)
+                                           visible=self.player_num == 0)
         else:
             raise 'che stai facendo? qua ci va una card'
 
