@@ -156,9 +156,9 @@ class Hand(SetOfCards):
         sp = " " * spaces + "|" + " " * spaces
         return f"{self[0]}" + sp + f"{self[1]}" + sp + f"{self[2]}"
 
-    def display(self, hidden: bool = False, spaces=10) -> str:
+    def display(self, visible: bool = True, spaces=5) -> str:
         sp = " " * spaces + "|" + " " * spaces
-        if not hidden:
+        if visible:
             show = f"{self[0]}" + sp + f"{self[1]}" + sp + f"{self[2]}"
         else:
             show = f"{Card(0, 0)}" + sp + f"{Card(0, 0)}" + sp + f"{Card(0, 0)}"

@@ -7,7 +7,7 @@ import pygame
 from .pygame_utils import card_position_in_screen, image_position_in_sheet, card_h, card_w
 from ..types.enums import Action
 
-
+print('un import random')
 #sprite_card_group = pygame.sprite.Group()
 
 class PySpriteCard(c.Card, pygame.sprite.Sprite):

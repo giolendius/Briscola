@@ -15,7 +15,7 @@ class PyBriscolaEnv(BriscolaEnv):
         super().__init__(n_players)
         self.screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
         self.tempo = [pygame.time.get_ticks()]
-        self.message = ""
+        self.message = "uuuh"
         self.flg_pause = False
         self.awaiting_user_input: bool = False
         self.delay_play = delay_play
@@ -90,19 +90,19 @@ class PyBriscolaEnv(BriscolaEnv):
             text(self.screen, f"Game pause! Press P to resume", (50,50))
 
         if self.awaiting_user_input:
-            text(self.screen, f"It's your turn!", (0, 700), (180, 20, 20), size=60)
+            text(self.screen, f"It's your turn!", (350, 650), (180, 20, 20), size=60)
 
-        text(self.screen, f"{agents[0]}:      score {self.points[0]}", (0, 650))
-        text(self.screen, self.players_hands[0].display(), (00, 750))
+        text(self.screen, f"{agents[0]}:      score {self.points[0]}", (0, 750))
+        text(self.screen, self.players_hands[0].display(), (00, 570), size=26)
         text(self.screen, f"{self.table[0]}", (-120, 450))
 
-        text(self.screen, f"{self.briscola}", (-400, 350))
+        text(self.screen, f"{self.briscola}", (-400, 300))
         text(self.screen, f"Remaining: {len(self.deck)}, t={self.turn}", (400, 350))
         text(self.screen, f"{self.message}", (0, 350), size=20)
 
         text(self.screen, f"{self.table[1]}", (-120, 350))
-        text(self.screen, self.players_hands[1].display(True), (00, 200))
-        text(self.screen, f"{agents[1]}:      score {self.points[1]}", (0, 100))
+        text(self.screen, self.players_hands[1].display(False), (00, 200), size=26)
+        text(self.screen, f"{agents[1]}:      score {self.points[1]}", (0, 40))
 
         self.sprite_card_group.draw(self.screen)
         self.sprite_card_group.update()
