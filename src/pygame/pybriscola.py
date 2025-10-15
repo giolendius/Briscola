@@ -1,8 +1,10 @@
 from typing import List, Tuple
 
+import pygame
+
 from ..Briscola import BriscolaEnv
 from ..types.Agents import Agent, Human
-from ..types.enums import Action
+from ..types.types import Action
 from .pygame_utils import *
 from .pygame_card import PyTable, PyHand, sprite_group, Container
 SCREEN_W = 1000
@@ -18,18 +20,16 @@ class PyBriscolaEnv(BriscolaEnv):
         self.flg_pause = False
         self.awaiting_user_input: bool = False
         self.delay_play = delay_play
-        self.delay_end_round = delay_end_round
+        # self.delay_end_round = delay_end_round
 
     def initial_draws(self):
         self.briscola = BriscolaCard(self.deck)
-        self.table = PyTable(n_players=self.tot_players)
-        for player in range(self.tot_players):
+        self.table = PyTable(n_players=self.player.tot)
+        for player in range(self.player.tot):
             self.players_hands[player] = PyHand(self.deck, player_num=player)
 
     def initial_checks(self, agents):
-        assert self.tot_players == len(agents)
         assert not any([isinstance(a, Human) for a in agents[1:]]), 'Human player first pos'
-
         if isinstance(agents[0], Human):
             pass
 
@@ -39,7 +39,7 @@ class PyBriscolaEnv(BriscolaEnv):
             assign_sprite(hand, num_hand)
 
     def run_env(self, agents: List[Agent]):
-        self.reset()
+        self.reset(len(agents))
         pygame.init()
         pygame.display.set_caption("Love Briscola")
         Container.card_images_sheet = get_card_sheet()
@@ -67,6 +67,14 @@ class PyBriscolaEnv(BriscolaEnv):
                         elif evento.key == pygame.K_3:
                             self.awaiting_user_input = False
                             primo_giocatore.action_chosen = Action(2)
+                    elif evento.key == pygame.K_PLUS:
+                        self.delay_play = max(self.delay_play/2, 250)
+                        print(f'+ Speed increased to {1000/self.delay_play}')
+                    elif evento.key == pygame.K_MINUS:
+                        self.delay_play = min(self.delay_play*2, 2000)
+                        print(f'- Speed decreased to {1000/self.delay_play}')
+                    elif evento.key == pygame.K_ESCAPE:
+                        self.running = False
 
             self.pygame_play_time(agents)
 

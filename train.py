@@ -26,7 +26,7 @@ def train_agents():
     env = BriscolaEnv(2)
     dl_agent = DLAgent()
 
-    from src.types.Card import Card
+    from src.types.briscola_cards import Card
     observation2 = [Card(2, 0),
                     Card(4, 1),
                     Card(13, 3),

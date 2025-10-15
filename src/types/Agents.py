@@ -2,8 +2,8 @@ from abc import ABC, abstractmethod
 import numpy as np
 from random import choice
 
-from .Card import Observation
-from .enums import Action
+from .briscola_cards import Observation
+from .types import Action
 
 namelist = ["Pieruc", "Iuanin", "Barbacec", "Vecia", "Pinotu", "Parin", "Lenciu"]
 

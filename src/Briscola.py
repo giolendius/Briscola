@@ -1,8 +1,10 @@
+import numpy as np
 import pandas as pd
 
-from src.types.Agents import *
-from src.types.Card import Card, Deck, Hand, BriscolaCard, Table, Observation, TurnMemory, players_hands
 
+# from src.types.Agents import Agent
+from src.types.briscola_cards import Card, Deck, Hand, BriscolaCard, Table, Observation, TurnMemory
+from src.types.types import Action, CurrentPlayer
 
 protagonist = 0
 
@@ -10,47 +12,44 @@ protagonist = 0
 class BriscolaEnv:
     running: bool
     turn: int
-    starting_player: int
-    current_player: int
+    # starting_player: int
+    player: CurrentPlayer
+    teams: bool
     points: list
     phase: str
 
     deck: Deck
     table: Table
     briscola: BriscolaCard
-    players_hands: players_hands
+    players_hands: dict
 
     turn_memory: TurnMemory
     game_memories: list[TurnMemory]
 
     def __init__(self, players: int):
-        self.tot_players = players
-        self.teams = True if self.tot_players == 4 else False
-        self.reset()
+        self.reset(players)
 
     def __repr__(self):
-        return f"Briscola a {self.tot_players}"
+        return f"Briscola"
 
-    def reset(self):
+    def reset(self, players):
         self.game_memories = []
         self.deck = Deck()
         self.turn = 1
-        self.starting_player = 0
-        self.current_player = self.starting_player
-        self.points = [0, 0] if self.teams else [0 for _ in range(self.tot_players)]
+        self.teams = True if players == 4 else False
+        # self.starting_player = 0
+        self.player = CurrentPlayer(players)
+        self.points = [0, 0] if self.teams else [0 for _ in range(self.player.tot)]
         self.players_hands = {}
         self.phase = "P"  # "P" play, "C" Calculates points "D" Draw
 
     def initial_draws(self):
         self.briscola = BriscolaCard(self.deck)
-        self.table = Table(self.tot_players)
-        for player in range(self.tot_players):
+        self.table = Table(self.player.tot)
+        for player in range(self.player.tot):
             self.players_hands[player] = Hand(self.deck)
 
     def game_engine(self, agents):
-
-        turn_order = [pl % self.tot_players for pl in
-                      range(self.starting_player, self.starting_player + self.tot_players)]
 
         if self.phase == "P":
             self._play_a_card(agents=agents)
@@ -59,7 +58,7 @@ class BriscolaEnv:
             self._end_round_operations()
 
         elif self.phase == "D":
-            self._draw_at_end_turn(turn_order=turn_order)
+            self._draw_at_end_turn()
 
         elif self.phase == "test":
             print("we reached the test phase")
@@ -67,32 +66,31 @@ class BriscolaEnv:
     def _play_a_card(self, agents):
 
         observation = Observation.from_sets(self.briscola,
-                                            self.players_hands[self.current_player],
+                                            self.players_hands[self.player],
                                             self.table)  # here we always exclude player 0, he IS playing
         #TODO give self.table[1:4] back
-        azione, q_val = agents[self.current_player].action(observation)
+        azione, q_val = agents[self.player].action(observation)
 
         if azione == Action.not_chosen_yet:
             self.awaiting_user_input = True
         else:
-            cur = self.current_player
-            if cur == protagonist:
+
+            if self.player == protagonist:
                 self.turn_memory = TurnMemory(turn=self.turn,
                                               observation=observation,
                                               action=azione.value)
 
-            card = self.players_hands[cur].play_this_card(azione)
-            self.table[cur] = card
-            self.current_player = (cur + 1) % self.tot_players
-
-            if self.current_player == self.starting_player:
+            card = self.players_hands[self.player].play_this_card(azione)
+            self.table[self.player] = card
+            self.player.next()
+            if self.player.is_back_at_start():
                 self.phase = "C"
-            return cur
+
 
     def _end_round_operations(self):
         # determine who takes
 
-        pt, takes_player = self._who_takes(self.table, self.starting_player)
+        pt, takes_player = self._who_takes(self.table, self.player.starting)
         pt = sum([carta.points() for carta in self.table])
         self.message = f"Player {takes_player} takes"
 
@@ -100,15 +98,15 @@ class BriscolaEnv:
             self.points[takes_player % 2] += pt
         else:
             self.points[takes_player] += pt
-        rewards = [-pt] * self.tot_players
+        rewards = [-pt] * self.player.tot
         rewards[takes_player] = pt
-        for player in range(self.tot_players):
+        for player in range(self.player.tot):
             if self.table[player].suit == self.briscola.suit:
                 rewards[player] -= 1
 
         # preparing next turn
-        self.starting_player = takes_player
-        self.current_player = takes_player
+        self.player.starting = takes_player
+        self.player.current = takes_player
         self.turn += 1
         self.message = ""
         self.table.empty()
@@ -116,25 +114,34 @@ class BriscolaEnv:
         self.turn_memory.reward = rewards[protagonist]
         self.game_memories.append(self.turn_memory)
 
-        if len(self.deck) > self.tot_players - 2:  # usually, proceed to draw
+        if len(self.deck) > self.player.tot - 2:  # usually, proceed to draw
             self.phase = "D"
-        elif self.turn >= 10 * 4 // self.tot_players + 1:  # if very last turn, game ended
+        elif self.turn >= 10 * 4 // self.player.tot + 1:  # if very last turn, game ended
             self.phase = "test"
             if sum(self.points) != 120:
                 print(f"{self.points}. Achtung score is not 120! turni {self.turn}")
+            else:
+                print(f"Game ended, final score {self.points} in turns")
 
             self.running = False
         else:  # if no more card but last 3 turns, don't draw but play
             self.phase = "P"
 
-    def _draw_at_end_turn(self, turn_order):
+    def _draw_at_end_turn(self):
         """Determine drawing order and implement it"""
-        for player in turn_order:
-            if len(self.deck) == 0:  # last round, last player draws briscola
-                self.players_hands[player].draw_replacement(draw_briscola_last_round=self.briscola)
-            else:
-                self.players_hands[player].draw_replacement()
-        self.phase = "P"
+        # for player in self.player:
+        #     if len(self.deck) == 0:  # last round, last player draws briscola
+        #         self.players_hands[player].draw_replacement(draw_briscola_last_round=self.briscola)
+        #     else:
+        #         self.players_hands[player].draw_replacement()
+
+        if len(self.deck) == 0:  # last round, last player draws briscola
+            self.players_hands[self.player].draw_replacement(draw_briscola_last_round=self.briscola)
+        else:
+            self.players_hands[self.player].draw_replacement()
+        self.player.next()
+        if self.player.is_back_at_start():
+            self.phase = "P"
 
     def _who_takes(self, table: list[type(Card(0, 0))] | Table, starting_player: int) -> (int, int):
         commanding_suit = table[starting_player].suit \
@@ -142,11 +149,11 @@ class BriscolaEnv:
         takes_player = np.argmax([card.ia()[commanding_suit] for card in table.cards])
         pt = sum([carta.points() for carta in table.cards])
         self.message = f"Player {takes_player} takes"
-        return pt, takes_player
+        return pt, int(takes_player)
 
     def run_env(self, agents: list):
         """Run a single game"""
-        self.reset()
+        self.reset(self.player.tot)
         self.initial_draws()
         self.running = True
         while self.running:

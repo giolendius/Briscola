@@ -132,7 +132,7 @@ class Agentepercapire(Agents.Agent):
 
 
 if __name__ == '__main__':
-    from src.types.Card import Card, Observation,Hand, Deck, BriscolaCard, SetOfCards
+    from src.types.briscola_cards import Card, Observation,Hand, Deck, BriscolaCard, SetOfCards
 
     ag = DLAgent()
 

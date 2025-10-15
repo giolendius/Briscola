@@ -1,11 +1,11 @@
 from typing import List  # , Dict, Optional, cast, Literal, Iterator
 
 from .pygame_utils import get_card_sheet
-from ..types import Card as c
+from ..types import briscola_cards as c
 import pygame
 
 from .pygame_utils import card_position_in_screen, image_position_in_sheet, card_h, card_w
-from ..types.enums import Action
+from ..types.types import Action, CurrentPlayer
 
 sprite_group = pygame.sprite.Group()
 
@@ -15,6 +15,29 @@ class Container:
     card_images_sheet = None
 
 
+class PySet(c.SetOfCards):
+    player_hand_number = 0
+    visible = True
+    def __setitem__(self, key, card):
+        if isinstance(key, CurrentPlayer):
+            key = int(key)
+        if isinstance(self.cards[key], pygame.sprite.Sprite):
+            self.cards[key].kill()
+        if isinstance(card, c.Card):
+            if card:
+                self.cards[key] = PySpriteCard(card.val,
+                                               card.suit,
+                                               position_dict={'type': type(self), 'card_num': key,
+                                                              'player_hand_number': self.player_hand_number
+                                                              },
+                                               visible=self.visible
+                                               )
+            else:
+                super().__setitem__(key, card)  # empty card
+        else:
+            raise f"In un {type(self).__name__} puoi assegnare solo oggetti 'carte' o 'PyCarte'"
+
+
 class PySpriteCard(c.Card, pygame.sprite.Sprite):
     def __init__(self, val: int | None,
                  suit: int,
@@ -22,8 +45,12 @@ class PySpriteCard(c.Card, pygame.sprite.Sprite):
                  visible: bool = True
                  ):
         c.Card.__init__(self, val, suit)
+
         pygame.sprite.Sprite.__init__(self, sprite_group)
-        self.image, self.rect = self._get_image_and_rect(position_dict, visible)
+        if self:
+            self.image, self.rect = self._get_image_and_rect(position_dict, visible)
+        else:
+            raise Exception("Non puoi creare una PySpriteCard vuota")
 
     def _get_image_and_rect(self, position_dict, visible):
         x, y, w, h = image_position_in_sheet(self)
@@ -46,54 +73,15 @@ class PySpriteCard(c.Card, pygame.sprite.Sprite):
         # self.rect.move_ip(20, 10)
 
 
-class PyTable(c.Table):
-    def __init__(self, list_of_cards=None, n_players=None):
-        super().__init__(list_of_cards=list_of_cards, n_players=n_players)
-        for player_num in range(len(self.cards)):
-            self[player_num] = self[player_num]
-            # this seems tautological, but actually convert card to pycard
-
-    def __setitem__(self, key, card):
-        if isinstance(self.cards[key], pygame.sprite.Sprite):
-            self.cards[key].kill()
-        if isinstance(card, c.Card):
-            self.cards[key] = PySpriteCard(card.val,
-                                           card.suit,
-                                           position_dict={'type': c.Table, 'player_number': key})
-        else:
-            raise Exception("Puoi assegnare solo oggetti 'pycarte'")
-
-
-# class PyBriscolaCard(c.BriscolaCard, PySpriteCard):
-#     def __init__(self, deck: c.SetOfCards):
-#         super().__init__(deck)
-#         dizio = {'type': c.BriscolaCard, 'player_number': 1, 'num_card': 1}
-#         self.sprite = SpriteCard(dizio, self, get_card_sheet())
-
-class PyHand(c.Hand):
+class PyHand(c.Hand, PySet):
     def __init__(self,
                  deck: c.Deck,
                  player_num):
         super().__init__(deck)
-
-        self.player_num = player_num
-        self.cards = [PySpriteCard(card.val,
-                                   card.suit,
-                                   position_dict={'type': c.Hand, 'player_number': self.player_num,
-                                                  'card_num': card_num},
-                                   visible=self.player_num == 0) for card_num, card in enumerate(self.cards)]
-
-    def __setitem__(self, key, value):
-        if isinstance(self.cards[key], pygame.sprite.Sprite):
-            self.cards[key].kill()
-        if isinstance(value, c.Card):
-            self.cards[key] = PySpriteCard(value.val,
-                                           value.suit,
-                                           position_dict={'type': c.Hand, 'player_number': self.player_num,
-                                                          'card_num': key},
-                                           visible=self.player_num == 0)
-        else:
-            raise 'che stai facendo? qua ci va una card'
+        self.player_hand_number = player_num
+        self.visible = self.player_hand_number == 0
+        for card_index in range(len(self.cards)): # this seems tautological, but actually convert card to pycard
+            self[card_index] = self[card_index]
 
     def play_this_card(self, index: Action) -> PySpriteCard:
         played_card = super().play_this_card(index)
@@ -102,53 +90,18 @@ class PyHand(c.Hand):
         played_card.kill()
         return played_card
 
-# class SetOfCards:
-#     def __init__(self, list_of_cards: List[Card] = None):
-#         self.cards: List[Card] = list_of_cards if list_of_cards else []
-#         self.name = 'SetOfCards'
-#
-#     def draw_random(self) -> Card | None:
-#         """Remove a random card from this set and returns it"""
-#         from random import randint
-#         if not self.cards:
-#             return None  # or raise an exception if you prefer
-#         index = randint(0, len(self.cards) - 1)
-#         return self.cards.pop(index)
-#
-#     def __len__(self):
-#         return len(self.cards)
-#
-#     def __iter__(self) -> Iterator[Card]:
-#         return iter(self.cards)
-#
-#     def __add__(self, other):
-#         if isinstance(other, Card):
-#             self.cards.append(other)
-#             return self
-#         elif isinstance(other, SetOfCards):
-#             return SetOfCards(self.cards+other.cards)
-#         elif isinstance(other, list):
-#             return SetOfCards(self.cards+other)
-#         else:
-#             raise Exception("Puo aggiungere solo una carta")
-#
-#     def __repr__(self):
-#         return type(self).__name__+"-object with "+str(len(self))+" cards\n"+repr(self.cards)
-#
-#     def __getitem__(self, index: int | slice):
-#         if isinstance(index, (int, np.int64)):
-#             return self.cards[index]
-#         elif isinstance(index, slice):
-#             return type(self)(self.cards[index])
-#
-#     def __setitem__(self, key, card: Card):
-#         if not isinstance(card, Card):
-#             raise Exception("Puoi assegnare solo una carta")
-#         self.cards[key] = card
-#
-#     def __bool__(self):
-#         return bool(self.cards[0])
-#
-#     def ia(self):
-#         """Returns a list of the cards.ia()"""
-#         return [card.ia().reshape(1,4) for card in self.cards]
+
+class PyTable(c.Table, PySet):
+    def __init__(self, list_of_cards=None, n_players=None):
+        super().__init__(list_of_cards=list_of_cards, n_players=n_players)
+        self.visible = True
+
+        for player_num in range(len(self.cards)):
+            self[player_num] = self[player_num]
+            # this seems tautological, but actually convert card to pycard
+
+# class PyBriscolaCard(c.BriscolaCard, PySpriteCard):
+#     def __init__(self, deck: c.SetOfCards):
+#         super().__init__(deck)
+#         dizio = {'type': c.BriscolaCard, 'player_number': 1, 'num_card': 1}
+#         self.sprite = SpriteCard(dizio, self, get_card_sheet())

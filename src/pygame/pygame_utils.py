@@ -3,7 +3,7 @@ import pygame
 from pygame.sprite import Sprite
 
 
-from ..types.Card import Card, Hand, Table, BriscolaCard, SetOfCards
+from ..types.briscola_cards import Card, Hand, Table, BriscolaCard, SetOfCards
 
 SCREEN_W = 1000
 SCREEN_H = 800
@@ -33,15 +33,17 @@ def image_position_in_sheet(card: Card) -> [float, float, float, float]:
 def card_position_in_screen(position_dict) -> array:
     center = array([SCREEN_W//2, SCREEN_H//2])
     tipo = position_dict['type']
-    if tipo == Hand:
-        card_set_type = array([0, -(position_dict['player_number']*2-1)*HAND_HEIGHT_POS])
-    elif tipo == Table:
-        card_set_type = array([0, -(position_dict['player_number']*2-1)*TABLE_HEIGHT_POS])
-    elif tipo == BriscolaCard:
+    if issubclass(tipo,Hand):
+        card_set_type = array([0, -(position_dict['player_hand_number']*2-1)*HAND_HEIGHT_POS])
+        card_pos = array([CARD_DISTANCE * (position_dict.get('card_num', 1) - 1), 0])
+    elif issubclass(tipo,Table):
+        card_set_type = array([0, -(position_dict['card_num']*2-1)*TABLE_HEIGHT_POS])
+        card_pos = array([0, 0])
+    elif issubclass(tipo,BriscolaCard):
         card_set_type = array([-SCREEN_W//2 +2*card_w, 50])
     else:
         raise Exception("Tipo di set di carte non valido")
-    card_pos = array([CARD_DISTANCE * (position_dict.get('card_num',1)-1), 0])
+
     return center+card_set_type+card_pos
 
 

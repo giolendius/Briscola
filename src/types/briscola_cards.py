@@ -1,8 +1,8 @@
 import numpy as np
-from typing import List, Dict, Optional, cast, Literal, Iterator
-from dataclasses import dataclass, fields
+from typing import List, Iterator
+from dataclasses import dataclass
 
-from .enums import Action
+from .types import Action
 
 
 # from loguru import logger
@@ -17,14 +17,18 @@ class Card:
     points_dic = {8: 2, 9: 3, 10: 4, 13: 10, 15: 11}
 
     def __init__(self, val: int | None, suit: int):
-        if val in _all_possible_val+[0, None]:
+        if val in _all_possible_val+[0]:
             self.val = val
+            if suit in suit_dictionary:
+                self.suit: int = suit
+            else:
+                raise Exception("Il seme della carta non è valido. Dichiarare seme con intero 0-3")
+        elif not val:
+            self.val = None
+            self.suit = suit
         else:
             raise Exception(f"Il valore {val} della carta non è valido")
-        if suit in suit_dictionary:
-            self.suit: int = suit
-        else:
-            raise Exception("Il seme della carta non è valido. Dichiarare seme con intero 0-3")
+
 
     def ia(self):
         """Output the card as tensor of shape (4,)"""
@@ -41,14 +45,15 @@ class Card:
         return d
 
     def __str__(self):
-        if not self.val:
-            return "___"
+        if not self:
+            return " _ "
         elif self.val == "Card":
+            print('sto cazzo')
             return "Card"
         return Card.card_dic[self.val] + " di " + suit_dictionary[self.suit]
 
     def __repr__(self) -> str:
-        representation = f"Card({self.val},{suit_dic[self.suit]})" if self else "NoCard"
+        representation = f"Card({self.val},{suit_dic[self.suit]})" if self else "EmptyCard"
         return representation
 
     def __bool__(self):
@@ -98,9 +103,11 @@ class SetOfCards:
             return self.cards[index]
         elif isinstance(index, slice):
             return type(self)(list_of_cards = self.cards[index])
+        else:
+            raise Exception("Index must be int or slice")
 
     def __setitem__(self, key, card: Card):
-        print('use setitem')
+        print(f'use setitem for {card}')
         if not isinstance(card, Card):
             raise Exception("Puoi assegnare solo oggetti 'carta'")
         self.cards[key] = card
@@ -185,7 +192,6 @@ class Hand(SetOfCards):
                 return
         print("no pescato")
 
-players_hands = Dict[int, Hand]
 
 @dataclass
 class Observation:
