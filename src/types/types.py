@@ -11,28 +11,11 @@ class Action(Enum):
     third_card = 2
     not_chosen_yet = None
 
-class Positions(Enum):
-    hand_0 = (-100,0)
-    hand_1 = (0,0)
-    hand_2 = (100, 0)
 
-class Players:
-    def __init__(self, tot_players: int):
-        self.tot_players = tot_players
-        self.player_names = [f"Player {i}" for i in range(tot_players)]
-        self.starting_player = 0
+class PygameState(Enum):
+    MainMenu = 0
+    Playing = 1
 
-# from typing import SupportsIndex, Protocol, runtime_checkable
-#
-# @runtime_checkable
-# class SupportsIndex(Protocol):
-#     """An ABC with one abstract method __index__."""
-#
-#     __slots__ = ()
-#
-#     @abstractmethod
-#     def __index__(self) -> int:
-#         pass
 
 class CurrentPlayer:
     def __init__(self, total: int, current: int = 0):

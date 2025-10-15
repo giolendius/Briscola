@@ -107,7 +107,6 @@ class SetOfCards:
             raise Exception("Index must be int or slice")
 
     def __setitem__(self, key, card: Card):
-        print(f'use setitem for {card}')
         if not isinstance(card, Card):
             raise Exception("Puoi assegnare solo oggetti 'carta'")
         self.cards[key] = card
@@ -143,7 +142,7 @@ class BriscolaCard(Card, SetOfCards):
     def __init__(self, deck):
         """Create an instance of BriscolaCard, which is both a Card and a SetOfCards with one card: itself"""
         briscola_card = deck.draw_random()
-        super().__init__(briscola_card.val, briscola_card.suit) #call Card init
+        Card.__init__(self, briscola_card.val, briscola_card.suit) #call Card init
         self.cards = [self]
 
     def __repr__(self):

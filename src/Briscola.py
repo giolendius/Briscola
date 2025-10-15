@@ -26,26 +26,26 @@ class BriscolaEnv:
     turn_memory: TurnMemory
     game_memories: list[TurnMemory]
 
-    def __init__(self, players: int):
-        self.reset(players)
+    def __init__(self, n_players: int):
+        self.reset(n_players)
 
     def __repr__(self):
         return f"Briscola"
 
-    def reset(self, players):
+    def reset(self, n_players):
         self.game_memories = []
         self.deck = Deck()
         self.turn = 1
-        self.teams = True if players == 4 else False
+        self.teams = True if n_players == 4 else False
         # self.starting_player = 0
-        self.player = CurrentPlayer(players)
+        self.player = CurrentPlayer(n_players)
         self.points = [0, 0] if self.teams else [0 for _ in range(self.player.tot)]
         self.players_hands = {}
         self.phase = "P"  # "P" play, "C" Calculates points "D" Draw
 
     def initial_draws(self):
         self.briscola = BriscolaCard(self.deck)
-        self.table = Table(self.player.tot)
+        self.table = Table(n_players=self.player.tot)
         for player in range(self.player.tot):
             self.players_hands[player] = Hand(self.deck)
 

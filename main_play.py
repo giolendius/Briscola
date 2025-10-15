@@ -5,7 +5,7 @@ from src.types.Agents import RandomAgent, Human # DLAgent
 def play():
     a1 = Human('Gioele')
     a2 = RandomAgent("Jhon")
-    env = PyBriscolaEnv(2)
+    env = PyBriscolaEnv(2, state=1)#[a1,a2])
     env.run_env([a1, a2])
 
 

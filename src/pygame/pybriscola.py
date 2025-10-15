@@ -1,18 +1,17 @@
 from typing import List, Tuple
 
-import pygame
-
 from ..Briscola import BriscolaEnv
 from ..types.Agents import Agent, Human
-from ..types.types import Action
+from ..types.types import Action, PygameState
 from .pygame_utils import *
-from .pygame_card import PyTable, PyHand, sprite_group, Container
+from .pygame_card import PyTable, PyHand, sprite_group, Container, PyBriscolaCard
+
 SCREEN_W = 1000
 SCREEN_H = 800
 
 
 class PyBriscolaEnv(BriscolaEnv):
-    def __init__(self, n_players: int = 2, delay_play=1000, delay_end_round=2000):
+    def __init__(self, n_players: int = 2, delay_play=1000, agents: list = None, state=1):
         super().__init__(n_players)
         self.screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
         self.tempo = [pygame.time.get_ticks()]
@@ -20,23 +19,21 @@ class PyBriscolaEnv(BriscolaEnv):
         self.flg_pause = False
         self.awaiting_user_input: bool = False
         self.delay_play = delay_play
+        self.agents = agents
+        self.pygame_state = PygameState(state)
         # self.delay_end_round = delay_end_round
 
     def initial_draws(self):
-        self.briscola = BriscolaCard(self.deck)
+        self.briscola = PyBriscolaCard(self.deck)
         self.table = PyTable(n_players=self.player.tot)
         for player in range(self.player.tot):
             self.players_hands[player] = PyHand(self.deck, player_num=player)
 
-    def initial_checks(self, agents):
+    @staticmethod
+    def initial_checks(agents):
         assert not any([isinstance(a, Human) for a in agents[1:]]), 'Human player first pos'
         if isinstance(agents[0], Human):
             pass
-
-    def all_card_images_now(self):
-        # assign_sprite(self.briscola)
-        for num_hand, hand in self.players_hands.items():
-            assign_sprite(hand, num_hand)
 
     def run_env(self, agents: List[Agent]):
         self.reset(len(agents))
@@ -51,39 +48,53 @@ class PyBriscolaEnv(BriscolaEnv):
             for evento in pygame.event.get():
                 if evento.type == pygame.QUIT:
                     self.running = False
-                elif evento.type == pygame.KEYDOWN:
-                    primo_giocatore = agents[0]
-                    if evento.key == pygame.K_p:
-                        # Azione da eseguire quando si preme 'N'
-                        print("Hai premuto P, metto in pausa")
-                        self.flg_pause = not self.flg_pause
-                    elif isinstance(primo_giocatore, Human) and self.awaiting_user_input:
-                        if evento.key == pygame.K_1:
-                            self.awaiting_user_input = False
-                            primo_giocatore.action_chosen = Action(0)
-                        elif evento.key == pygame.K_2:
-                            self.awaiting_user_input = False
-                            primo_giocatore.action_chosen = Action(1)
-                        elif evento.key == pygame.K_3:
-                            self.awaiting_user_input = False
-                            primo_giocatore.action_chosen = Action(2)
-                    elif evento.key == pygame.K_PLUS:
-                        self.delay_play = max(self.delay_play/2, 250)
-                        print(f'+ Speed increased to {1000/self.delay_play}')
-                    elif evento.key == pygame.K_MINUS:
-                        self.delay_play = min(self.delay_play*2, 2000)
-                        print(f'- Speed decreased to {1000/self.delay_play}')
-                    elif evento.key == pygame.K_ESCAPE:
-                        self.running = False
 
-            self.pygame_play_time(agents)
+            if self.pygame_state == PygameState.MainMenu:
+                self.main_menu()
+            elif self.pygame_state == PygameState.Playing:
+                self.pygame_play_time(agents)
 
             pygame.display.update()
             pygame.time.Clock().tick(30)
         pygame.quit()
 
+    def main_menu(self):
+        self.screen.fill((20, 20, 99))
+        tasto = pygame.key.get_pressed()
+        if tasto[pygame.K_n]:
+            self.reset(self.player.tot)
+            self.initial_draws()
+            #FIXME c'è uno strana carta che vine data quando si gioca partendo dal main menu
+            self.pygame_state = PygameState.Playing
+
+        text(self.screen, 'Press N to play', (0,SCREEN_H//2), 'red', 50)
+
     def pygame_play_time(self, agents):
         """Handles pygame while the actual game is going"""
+        tasto = pygame.key.get_pressed()
+        primo_giocatore = agents[0]
+        if tasto[pygame.K_p]:
+            print("Hai premuto P, metto in pausa")
+            self.flg_pause = not self.flg_pause
+        elif isinstance(primo_giocatore, Human) and self.awaiting_user_input:
+            if tasto[pygame.K_1]:
+                self.awaiting_user_input = False
+                primo_giocatore.action_chosen = Action(0)
+            elif tasto[pygame.K_2]:
+                self.awaiting_user_input = False
+                primo_giocatore.action_chosen = Action(1)
+            elif tasto[pygame.K_3]:
+                self.awaiting_user_input = False
+                primo_giocatore.action_chosen = Action(2)
+        elif tasto[pygame.K_PLUS]:
+            self.delay_play = max(self.delay_play / 2, 250)
+            print(f'+ Speed increased to {1000 / self.delay_play}')
+        elif tasto[pygame.K_MINUS]:
+            self.delay_play = min(self.delay_play * 2, 2000)
+            print(f'- Speed decreased to {1000 / self.delay_play}')
+        elif tasto[pygame.K_ESCAPE]:
+            self.running = False
+
         self.screen.fill((62, 184, 99))
 
         if self.flg_pause:
@@ -96,7 +107,7 @@ class PyBriscolaEnv(BriscolaEnv):
         text(self.screen, self.players_hands[0].display(), (00, 570), size=26)
         text(self.screen, f"{self.table[0]}", (-120, 450))
 
-        text(self.screen, f"{self.briscola}", (-400, 300))
+        text(self.screen, f"{self.briscola}", (-SCREEN_W//8*3, 300))
         text(self.screen, f"Remaining: {len(self.deck)}, t={self.turn}", (400, 350))
         text(self.screen, f"{self.message}", (0, 350), size=20)
 
