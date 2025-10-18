@@ -22,6 +22,7 @@ class CurrentPlayer:
         self.tot = total
         self.starting = current
         self.current = current
+        self.teams = True if self.tot == 4 else False
 
     def next(self):
         self.current = (self.current + 1) % self.tot

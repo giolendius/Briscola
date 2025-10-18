@@ -1,12 +1,23 @@
 from typing import List  # , Dict, Optional, cast, Literal, Iterator
 
-from ..types import briscola_cards as c
-import pygame
 
-from .pygame_utils import card_position_in_screen, image_position_in_sheet, card_h, card_w
+import pygame
+from numpy import array
+
+from ..types import briscola_cards as bc
 from ..types.types import Action, CurrentPlayer
 
-sprite_group = pygame.sprite.Group()
+card_sprite_group = pygame.sprite.Group()
+
+
+SCREEN_W = 1000
+SCREEN_H = 800
+HAND_HEIGHT_POS = 260
+TABLE_HEIGHT_POS = 60
+CARD_DISTANCE = 100
+
+# l = 5
+card_w, card_h = 15.5*5, 24.5*5
 
 
 class Container:
@@ -14,16 +25,46 @@ class Container:
     card_images_sheet = None
 
 
-class PySpriteCard(c.Card, pygame.sprite.Sprite):
+def get_card_sheet():
+    # 735, 502
+    # ori, coppe, bastoni, spade
+    image = pygame.image.load("src/asset/carte.png").convert_alpha()
+    return image
+
+
+def image_position_in_sheet(card: bc.Card) -> [float, float, float, float]:
+    """returns x,y,w,h"""
+    w, h = 73.5, 125.5
+    x, y = {15: 0, 2: 1, 13: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7, 9: 8, 10: 9, None: 10}[card.val]*w, card.suit * h
+    return x, y, w, h
+
+
+def card_position_in_screen(pyset_type, position_dict) -> array:
+    center = array([SCREEN_W//2, SCREEN_H//2])
+    if issubclass(pyset_type, bc.Hand):
+        card_set_type = array([0, -(position_dict['player_hand_number']*2-1)*HAND_HEIGHT_POS])
+        card_pos = array([CARD_DISTANCE * (position_dict.get('card_num', 1) - 1), 0])
+    elif issubclass(pyset_type, bc.Table):
+        card_set_type = array([0, -(position_dict['card_num']*2-1)*TABLE_HEIGHT_POS])
+        card_pos = array([0, 0])
+    elif issubclass(pyset_type, bc.BriscolaCard):
+        card_set_type = array([-SCREEN_W//8*3, 0])
+        card_pos = array([0, 0])
+    else:
+        raise Exception("Tipo di set di carte non valido")
+    return center+card_set_type+card_pos
+
+
+class PySpriteCard(bc.Card, pygame.sprite.Sprite):
     def __init__(self, val: int | None,
                  suit: int,
                  pyset_type: type,
                  position_dict: dict = None,
                  visible: bool = True
                  ):
-        c.Card.__init__(self, val, suit)
+        bc.Card.__init__(self, val, suit)
 
-        pygame.sprite.Sprite.__init__(self, sprite_group)
+        pygame.sprite.Sprite.__init__(self, card_sprite_group)
         if self:
             self.image, self.rect = self._get_image_and_rect(pyset_type, position_dict, visible)
         else:
@@ -35,7 +76,7 @@ class PySpriteCard(c.Card, pygame.sprite.Sprite):
         if visible:
             image.blit(Container.card_images_sheet, (0, 0), (x, y, w, h))
         else:
-            image.fill((120,110,120))
+            image.fill((120, 110, 120))
         # blit on the small rectangle the sub-image of card_sheet with dimensions(w,h)
         # whose top-left corner is on (x,y) of the sheet
         image = pygame.transform.scale(image, (card_w, card_h))
@@ -52,7 +93,8 @@ class PySpriteCard(c.Card, pygame.sprite.Sprite):
         # self.rect.move_ip(20, 10)
 
 
-class PySet(c.SetOfCards):
+class PySet(bc.SetOfCards):
+    cards: List[PySpriteCard]
     player_hand_number = 0
     visible = True
 
@@ -61,7 +103,7 @@ class PySet(c.SetOfCards):
             key = int(key)
         if isinstance(self.cards[key], pygame.sprite.Sprite):
             self.cards[key].kill()
-        if isinstance(card, c.Card):
+        if isinstance(card, bc.Card):
             if card:
                 self.cards[key] = PySpriteCard(card.val,
                                                card.suit,
@@ -77,15 +119,14 @@ class PySet(c.SetOfCards):
             raise f"In un {type(self).__name__} puoi assegnare solo oggetti 'carte' o 'PyCarte'"
 
 
-
-class PyHand(c.Hand, PySet):
+class PyHand(bc.Hand, PySet):
     def __init__(self,
-                 deck: c.Deck,
+                 deck: bc.Deck,
                  player_num):
         super().__init__(deck)
         self.player_hand_number = player_num
         self.visible = self.player_hand_number == 0
-        for card_index in range(len(self.cards)): # this seems tautological, but actually convert card to pycard
+        for card_index in range(len(self.cards)):  # this seems tautological, but actually convert card to pycard
             self[card_index] = self[card_index]
 
     def play_this_card(self, index: Action) -> PySpriteCard:
@@ -96,7 +137,7 @@ class PyHand(c.Hand, PySet):
         return played_card
 
 
-class PyTable(c.Table, PySet):
+class PyTable(bc.Table, PySet):
     def __init__(self, list_of_cards=None, n_players=None):
         super().__init__(list_of_cards=list_of_cards, n_players=n_players)
         self.visible = True
@@ -106,11 +147,9 @@ class PyTable(c.Table, PySet):
             # this seems tautological, but actually convert card to pycard
 
 
-class PyBriscolaCard(c.BriscolaCard, PySpriteCard):
-    def __init__(self, deck: c.SetOfCards):
-        c.BriscolaCard.__init__(self, deck)
-        # dizio = {'type': c.BriscolaCard, 'player_number': 1, 'num_card': 1}
+class PyBriscolaCard(bc.BriscolaCard, PySpriteCard):
+    def __init__(self, deck: bc.SetOfCards):
+        bc.BriscolaCard.__init__(self, deck)
         PySpriteCard.__init__(self, self.val,
                               self.suit,
                               type(self))
-        # self.image, self.rect = self._get_image_and_rect()

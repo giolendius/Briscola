@@ -23,11 +23,12 @@ class Agent(ABC):
         return self.name
 
     def __repr__(self):
-        return type(self).__name__ + ": "+self.name
+        return type(self).__name__ + ": " + self.name
 
 
 class RandomAgent(Agent):
     """An agent who plays a random card of the available ones"""
+
     def action(self, observation: Observation) -> (Action, float):
         poss = observation.indices_card_in_hand()
         return Action(choice(poss)), np.array([0, 0, 0])
@@ -46,3 +47,6 @@ class Human(Agent):
         if action_chosen != Action.not_chosen_yet:
             self.action_chosen = Action.not_chosen_yet
         return action_chosen, np.array([0, 0, 0])
+
+
+agents_dict = {'Human': Human, 'Random': RandomAgent, 'Primo': AgentOnlyFirst}

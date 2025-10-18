@@ -1,8 +1,9 @@
+from typing import List
+
 import numpy as np
 import pandas as pd
 
-
-# from src.types.Agents import Agent
+from src.types.Agents import Agent, Human
 from src.types.briscola_cards import Card, Deck, Hand, BriscolaCard, Table, Observation, TurnMemory
 from src.types.types import Action, CurrentPlayer
 
@@ -12,9 +13,7 @@ protagonist = 0
 class BriscolaEnv:
     running: bool
     turn: int
-    # starting_player: int
     player: CurrentPlayer
-    teams: bool
     points: list
     phase: str
 
@@ -26,22 +25,25 @@ class BriscolaEnv:
     turn_memory: TurnMemory
     game_memories: list[TurnMemory]
 
-    def __init__(self, n_players: int):
-        self.reset(n_players)
+    # def __init__(self, n_players: int):
+    #
+    #     self.reset(n_players)
 
     def __repr__(self):
         return f"Briscola"
 
-    def reset(self, n_players):
+    def reset(self, agents: List[Agent]):
+        self.agents = agents
+        self.player = CurrentPlayer(len(agents))
         self.game_memories = []
         self.deck = Deck()
         self.turn = 1
-        self.teams = True if n_players == 4 else False
         # self.starting_player = 0
-        self.player = CurrentPlayer(n_players)
-        self.points = [0, 0] if self.teams else [0 for _ in range(self.player.tot)]
+
+        self.points = [0, 0] if self.player.teams else [0 for _ in range(self.player.tot)]
         self.players_hands = {}
         self.phase = "P"  # "P" play, "C" Calculates points "D" Draw
+        self.initial_draws()
 
     def initial_draws(self):
         self.briscola = BriscolaCard(self.deck)
@@ -49,10 +51,16 @@ class BriscolaEnv:
         for player in range(self.player.tot):
             self.players_hands[player] = Hand(self.deck)
 
-    def game_engine(self, agents):
+    @staticmethod
+    def initial_checks(agents):
+        assert not any([isinstance(a, Human) for a in agents[1:]]), 'Human player first pos'
+        if isinstance(agents[0], Human):
+            pass
+
+    def game_engine(self):
 
         if self.phase == "P":
-            self._play_a_card(agents=agents)
+            self._play_a_card()
 
         elif self.phase == "C":
             self._end_round_operations()
@@ -63,13 +71,13 @@ class BriscolaEnv:
         elif self.phase == "test":
             print("we reached the test phase")
 
-    def _play_a_card(self, agents):
+    def _play_a_card(self):
 
         observation = Observation.from_sets(self.briscola,
                                             self.players_hands[self.player],
                                             self.table)  # here we always exclude player 0, he IS playing
         #TODO give self.table[1:4] back
-        azione, q_val = agents[self.player].action(observation)
+        azione, q_val = self.agents[self.player].action(observation)
 
         if azione == Action.not_chosen_yet:
             self.awaiting_user_input = True
@@ -94,7 +102,7 @@ class BriscolaEnv:
         pt = sum([carta.points() for carta in self.table])
         self.message = f"Player {takes_player} takes"
 
-        if self.teams:
+        if self.player.teams:
             self.points[takes_player % 2] += pt
         else:
             self.points[takes_player] += pt
@@ -153,11 +161,11 @@ class BriscolaEnv:
 
     def run_env(self, agents: list):
         """Run a single game"""
-        self.reset(self.player.tot)
-        self.initial_draws()
+        self.reset(agents)
+
         self.running = True
         while self.running:
-            self.game_engine(agents)
+            self.game_engine()
 
     def train_model(self, agent, data, epochs=5, save_name=None):
         if isinstance(data, pd.DataFrame):

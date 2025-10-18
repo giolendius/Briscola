@@ -1,45 +1,21 @@
 from numpy import array
 import pygame
 
-
-from ..types.briscola_cards import Card, Hand, Table, BriscolaCard
-
-SCREEN_W = 1000
-SCREEN_H = 800
-HAND_HEIGHT_POS = 260
-TABLE_HEIGHT_POS = 60
-CARD_DISTANCE = 100
-
-# l = 5
-card_w, card_h = 15.5*5, 24.5*5
+main_menu_sprite_group = pygame.sprite.Group()
 
 
-def get_card_sheet():
-    #735, 502
-    #ori, coppe, bastoni, spade
-    image = pygame.image.load("src/asset/carte.png").convert_alpha()
-    return image
+class Button(pygame.sprite.Sprite):
+    def __init__(self, width, height, background_color, position, text_size, text_content, text_color):
+        super().__init__(main_menu_sprite_group)
+        self.image = pygame.Surface([width, height])
+        self.image.fill(background_color)
+        self.rect = self.image.get_rect(center=position)
+        self.text = pygame.font.Font("src/asset/Pixel-type.ttf", text_size).render(text_content, True, text_color)
+        self.text_rect = self.text.get_rect(center=[width/2, height/2])
+        self.image.blit(self.text, self.text_rect)
 
-
-def image_position_in_sheet(card: Card) -> [float, float, float, float]:
-    """returns x,y,w,h"""
-    w, h = 73.5, 125.5
-    x,y = {15:0, 2:1, 13:2, 4:3, 5:4, 6:5,7:6, 8:7, 9:8, 10:9, None:10}[card.val]*w, card.suit * h
-    return x, y, w, h
-
-
-def card_position_in_screen(pyset_type, position_dict) -> array:
-    center = array([SCREEN_W//2, SCREEN_H//2])
-    if issubclass(pyset_type,Hand):
-        card_set_type = array([0, -(position_dict['player_hand_number']*2-1)*HAND_HEIGHT_POS])
-        card_pos = array([CARD_DISTANCE * (position_dict.get('card_num', 1) - 1), 0])
-    elif issubclass(pyset_type,Table):
-        card_set_type = array([0, -(position_dict['card_num']*2-1)*TABLE_HEIGHT_POS])
-        card_pos = array([0, 0])
-    elif issubclass(pyset_type,BriscolaCard):
-        card_set_type = array([-SCREEN_W//8*3, 0])
-        card_pos = array([0, 0])
-    else:
-        raise Exception("Tipo di set di carte non valido")
-    return center+card_set_type+card_pos
+    def is_pressed(self, mouse_pos, pressed):
+        if self.rect.collidepoint(mouse_pos) and pressed[0]:
+            return True
+        return False
 

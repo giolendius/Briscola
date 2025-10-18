@@ -6,7 +6,7 @@ def play():
     a1 = Human('Gioele')
     a1 = RandomAgent("Gioele")
     a2 = RandomAgent("Jhon")
-    env = PyBriscolaEnv(2)
+    env = PyBriscolaEnv(state=0)
     env.run_env([a1, a2])
 
 
