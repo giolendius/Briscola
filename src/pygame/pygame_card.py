@@ -6,18 +6,12 @@ from numpy import array
 
 from ..types import briscola_cards as bc
 from ..types.types import Action, CurrentPlayer
+from .pygame_constants import *
 
 card_sprite_group = pygame.sprite.Group()
 
 
-SCREEN_W = 1000
-SCREEN_H = 800
-HAND_HEIGHT_POS = 260
-TABLE_HEIGHT_POS = 60
-CARD_DISTANCE = 100
 
-# l = 5
-card_w, card_h = 15.5*5, 24.5*5
 
 
 class Container:

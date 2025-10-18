@@ -1,8 +1,4 @@
 from enum import Enum
-from typing import Dict, Iterator, Iterable
-
-
-from typing_extensions import SupportsIndex
 
 
 class Action(Enum):
@@ -51,16 +47,3 @@ class CurrentPlayer:
     def __repr__(self) -> str:
         """Make printing show the current value nicely."""
         return f"CurPlayer: {self.current}, starting {self.starting}/{self.tot}"
-
-    # def __iter__(self):
-    #     for i in range(self.tot):
-    #         yield (self.starting+i) % self.tot
-
-
-a=CurrentPlayer(4,2)
-b = [5,6,7][a]
-c = {0: 'a', 1: 'b', 2: 'c'}
-d=c[a]
-a.next()
-a.next()
-a==a.starting

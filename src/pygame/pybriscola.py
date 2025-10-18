@@ -1,18 +1,18 @@
 from typing import List, Tuple
 import pygame
 
-from .pygame_utils import Button, main_menu_sprite_group
+from .pygame_utils import main_menu_sprite_group, ChoosePlayerButton
 from ..Briscola import BriscolaEnv
 from ..types.Agents import Agent, Human, agents_dict
 from ..types.types import Action, PygameState
 from .pygame_card import PyTable, PyHand, card_sprite_group, Container, PyBriscolaCard, get_card_sheet
-
-SCREEN_W = 1000
-SCREEN_H = 800
+from .pygame_constants import *
 
 
 class PyBriscolaEnv(BriscolaEnv):
-    def __init__(self, delay_play=1000, agents: list = None, state=1):
+    buttons: dict
+
+    def __init__(self, delay_play=1000, state=1):
         self.screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
         self.tempo = [pygame.time.get_ticks()]
         self.flg_pause = False
@@ -58,11 +58,15 @@ class PyBriscolaEnv(BriscolaEnv):
         pygame.quit()
 
     def create_buttons(self):
-        self.buttons = {(i, agent): Button(100, 60, 'red',
-                                           (300 * (i + 1), 300 + 80 * j), 30, agent,
-                                           'blue')
-                        for i in range(2)
-                        for j, agent in enumerate(agents_dict.keys())}
+        self.buttons = {
+            (player_id, agent_name): ChoosePlayerButton((player_id, agent_id),
+                                                        100, 60,
+                                                        '#FF6745', '#FF2300',
+                                                        (90 * (player_id * 2 - 1), 80 * agent_id),
+                                                        30,
+                                                        agent_name, '#34FFFF')
+            for player_id in range(2)
+            for agent_id, agent_name in enumerate(agents_dict.keys())}
 
     def main_menu(self):
 
@@ -80,9 +84,11 @@ class PyBriscolaEnv(BriscolaEnv):
                 print(f'{i} is now {agent_name}')
                 self.agents[i] = agents_dict[agent_name]()
 
-        text(self.screen, 'Press N to play', (0, SCREEN_H // 2), 'red', 50)
+        text(self.screen, 'BRISCOLA', (0, SCREEN_H // 8), '#FF6745', 160)
+        text(self.screen, 'Press N to play', (0, SCREEN_H // 4), 'red', 50)
 
         main_menu_sprite_group.draw(self.screen)
+        main_menu_sprite_group.update()
 
     def pygame_play_time(self):
         """Handles pygame while the actual game is going"""
@@ -142,7 +148,6 @@ class PyBriscolaEnv(BriscolaEnv):
 def text(screen, txt: str, posit: Tuple[int, int], color=(0, 0, 0), size=40):
     """Writes text on the pygame screen"""
     pos = (SCREEN_W // 2 + posit[0], posit[1])
-    font = pygame.font.Font("src/asset/Pixel-type.ttf", size)
     font = pygame.font.Font("src/asset/Pixel-type.ttf", size)
     txt_surf = font.render(txt, False, color)
     text_rect = txt_surf.get_rect(midtop=pos)
