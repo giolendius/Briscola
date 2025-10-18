@@ -20,8 +20,13 @@ class Button(pygame.sprite.Sprite):
 
     def is_pressed(self, mouse_pos, pressed):
         if self.rect.collidepoint(mouse_pos) and pressed[0]:
+            self.image.fill(self.button_color2)
+            self.image.blit(self.text, self.text_rect)
             return True
-        return False
+        else:
+            self.image.fill(self.button_color1)
+            self.image.blit(self.text, self.text_rect)
+            return False
 
 
 @dataclass

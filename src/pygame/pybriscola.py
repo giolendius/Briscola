@@ -1,7 +1,7 @@
 from typing import List, Tuple
 import pygame
 
-from .pygame_utils import main_menu_sprite_group, ChoosePlayerButton
+from .pygame_utils import main_menu_sprite_group, ChoosePlayerButton, Button
 from ..Briscola import BriscolaEnv
 from ..types.Agents import Agent, Human, agents_dict
 from ..types.types import Action, PygameState
@@ -10,7 +10,7 @@ from .pygame_constants import *
 
 
 class PyBriscolaEnv(BriscolaEnv):
-    buttons: dict
+    buttons: dict = {}
 
     def __init__(self, delay_play=1000, state=1):
         self.screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
@@ -28,9 +28,13 @@ class PyBriscolaEnv(BriscolaEnv):
         for player in range(self.player.tot):
             self.players_hands[player] = PyHand(self.deck, player_num=player)
 
-    @staticmethod
-    def initial_checks(agents):
-        assert not any([isinstance(a, Human) for a in agents[1:]]), 'Human player first pos'
+    def initial_checks(self):
+        if None in self.agents:
+            return False
+        if any([isinstance(a, Human) for a in self.agents[1:]]):
+            return False#, 'Human player first pos'
+
+        return True
         if isinstance(agents[0], Human):
             pass
 
@@ -58,7 +62,7 @@ class PyBriscolaEnv(BriscolaEnv):
         pygame.quit()
 
     def create_buttons(self):
-        self.buttons = {
+        self.buttons['agents'] = {
             (player_id, agent_name): ChoosePlayerButton((player_id, agent_id),
                                                         100, 60,
                                                         '#FF6745', '#FF2300',
@@ -68,21 +72,30 @@ class PyBriscolaEnv(BriscolaEnv):
             for player_id in range(2)
             for agent_id, agent_name in enumerate(agents_dict.keys())}
 
+        self.buttons['play'] = Button(100, 60,
+                           '#FF6745', '#FF2300',
+                           (0, 80 * 4),
+                           30,
+                           'Play!', '#34FFFF')
+
     def main_menu(self):
 
         self.screen.fill((20, 20, 99))
         tasto = pygame.key.get_pressed()
-        if tasto[pygame.K_n]:
-            self.initial_checks(self.agents)
+        if tasto[pygame.K_n] and self.initial_checks():
             self.reset(self.agents)
             self.pygame_state = PygameState.Playing
 
         mouse_pos, mouse_pressed = pygame.mouse.get_pos(), pygame.mouse.get_pressed()
 
-        for (i, agent_name), button in self.buttons.items():
+        for (i, agent_name), button in self.buttons['agents'].items():
             if button.is_pressed(mouse_pos, mouse_pressed):
                 print(f'{i} is now {agent_name}')
                 self.agents[i] = agents_dict[agent_name]()
+        if self.buttons['play'].is_pressed(mouse_pos, mouse_pressed) and self.initial_checks():
+            self.reset(self.agents)
+            self.pygame_state = PygameState.Playing
+
 
         text(self.screen, 'BRISCOLA', (0, SCREEN_H // 8), '#FF6745', 160)
         text(self.screen, 'Press N to play', (0, SCREEN_H // 4), 'red', 50)
