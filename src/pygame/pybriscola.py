@@ -92,9 +92,12 @@ class PyBriscolaEnv(BriscolaEnv):
             if button.is_pressed(mouse_pos, mouse_pressed):
                 print(f'{i} is now {agent_name}')
                 self.agents[i] = agents_dict[agent_name]()
-        if self.buttons['play'].is_pressed(mouse_pos, mouse_pressed) and self.initial_checks():
-            self.reset(self.agents)
-            self.pygame_state = PygameState.Playing
+        if self.buttons['play'].is_pressed(mouse_pos, mouse_pressed):
+            if self.initial_checks():
+                self.reset(self.agents)
+                self.pygame_state = PygameState.Playing
+            else:
+                print('check settings!')
 
 
         text(self.screen, 'BRISCOLA', (0, SCREEN_H // 8), '#FF6745', 160)
