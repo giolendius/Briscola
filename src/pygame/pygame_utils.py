@@ -14,7 +14,7 @@ class Button(pygame.sprite.Sprite):
         self.button_color2 = button_color2
         self.image.fill(self.button_color1)
         self.rect = self.image.get_rect(center=(SCREEN_W//2+position[0], SCREEN_H//2+position[1]))
-        self.text = pygame.font.Font("src/asset/Pixel-type.ttf", text_size).render(text_content, True, text_color)
+        self.text = pygame.font.Font("asset/Pixel-type.ttf", text_size).render(text_content, True, text_color)
         self.text_rect = self.text.get_rect(center=[width / 2, height / 2])
         self.image.blit(self.text, self.text_rect)
 

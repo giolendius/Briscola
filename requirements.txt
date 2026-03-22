@@ -1,3 +1,4 @@
+click
 pandas
 keras #>= 3.2.0
 tensorflow

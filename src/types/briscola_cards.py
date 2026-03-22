@@ -4,7 +4,6 @@ from dataclasses import dataclass
 
 from .types import Action
 
-
 # from loguru import logger
 
 _all_possible_val = [2, 4, 5, 6, 7, 8, 9, 10, 13, 15]
@@ -17,7 +16,7 @@ class Card:
     points_dic = {8: 2, 9: 3, 10: 4, 13: 10, 15: 11}
 
     def __init__(self, val: int | None, suit: int):
-        if val in _all_possible_val+[0]:
+        if val in _all_possible_val + [0]:
             self.val = val
             if suit in suit_dictionary:
                 self.suit: int = suit
@@ -28,7 +27,6 @@ class Card:
             self.suit = suit
         else:
             raise Exception(f"Il valore {val} della carta non è valido")
-
 
     def ia(self):
         """Output the card as tensor of shape (4,)"""
@@ -41,7 +39,7 @@ class Card:
         if explicit:
             d = {'val': self.val, 'suit': suit_dictionary[self.suit]}
         else:
-            d = {"v":self.val, "s": self.val}
+            d = {"val": self.val, "suit": self.suit}
         return d
 
     def __str__(self):
@@ -89,20 +87,20 @@ class SetOfCards:
             self.cards.append(other)
             return self
         elif isinstance(other, SetOfCards):
-            return SetOfCards(self.cards+other.cards)
+            return SetOfCards(self.cards + other.cards)
         elif isinstance(other, list):
-            return SetOfCards(self.cards+other)
+            return SetOfCards(self.cards + other)
         else:
             raise Exception("Puo aggiungere solo una carta")
 
     def __repr__(self):
-        return type(self).__name__+"-object with "+str(len(self))+" cards\n"+repr(self.cards)
+        return type(self).__name__ + "-object with " + str(len(self)) + " cards\n" + repr(self.cards)
 
     def __getitem__(self, index: int | slice):
         if isinstance(index, (int, np.int64)):
             return self.cards[index]
         elif isinstance(index, slice):
-            return type(self)(list_of_cards = self.cards[index])
+            return type(self)(list_of_cards=self.cards[index])
         else:
             raise Exception("Index must be int or slice")
 
@@ -116,8 +114,7 @@ class SetOfCards:
 
     def ia(self):
         """Returns a list of the cards.ia()"""
-        return [card.ia().reshape(1,4) for card in self.cards]
-
+        return [card.ia().reshape(1, 4) for card in self.cards]
 
 
 class Table(SetOfCards):
@@ -137,16 +134,15 @@ class Deck(SetOfCards):
         self.cards = [Card(v, s) for s in range(4) for v in _all_possible_val]
 
 
-
 class BriscolaCard(Card, SetOfCards):
     def __init__(self, deck):
         """Create an instance of BriscolaCard, which is both a Card and a SetOfCards with one card: itself"""
         briscola_card = deck.draw_random()
-        Card.__init__(self, briscola_card.val, briscola_card.suit) #call Card init
+        Card.__init__(self, briscola_card.val, briscola_card.suit)  # call Card init
         self.cards = [self]
 
     def __repr__(self):
-        return type(self).__name__+f"({self.val},{self.suit})"
+        return type(self).__name__ + f"({self.val},{self.suit})"
 
 
 class Hand(SetOfCards):
@@ -213,13 +209,16 @@ class Observation:
     def indices_card_in_hand(self) -> List[int]:
         """returns list with 0,1,2 if index in hand"""
         return [i for i, card in enumerate([self.hand0, self.hand1, self.hand2]) if card]
+
     # def predict_form(self):
     #     return [self.briscola.ia().reshape(1,4)]+self.table.ia()+self.hand.ia()
+
     def to_dict(self, explicit: bool = True) -> dict:
         dict_card_suit_value = {f"{name}_{key}": val
-                for name,carta in self.__dict__.items() if carta and isinstance(carta, Card)
-                for key, val in carta.card_to_dict(explicit=explicit).items()}
+                                for name, carta in self.__dict__.items() if carta and isinstance(carta, Card)
+                                for key, val in carta.card_to_dict(explicit=explicit).items()}
         return dict_card_suit_value
+
 
 @dataclass
 class TurnMemory:
@@ -229,21 +228,17 @@ class TurnMemory:
     reward: int = None
 
     def to_dict(self, explicit: bool = True) -> dict:
-        dict_int = {'turn' : self.turn,
+        dict_int = {'turn': self.turn,
                     'reward': self.reward,
                     'action': self.action}
         return dict_int | self.observation.to_dict(explicit)
-
-
-
-
 
 
 if __name__ == '__main__':
     d = Deck()
     b = BriscolaCard(d)
     h = Hand(d)
-    t = Table([Card(2,2)])
+    t = Table([Card(2, 2)])
     o = Observation.from_sets(b, h, t)
     t = TurnMemory(1, o, reward=3, action=2)
     o.to_dict(True)

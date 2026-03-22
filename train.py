@@ -1,25 +1,5 @@
-import numpy as np
-import pandas as pd
-from tqdm import tqdm
-
 from src.Briscola import BriscolaEnv
-from src.types.Agents import RandomAgent
 from src.types.DLAgents import DLAgent
-
-
-def simulate_games(train_episodes=2, save_name=None):
-    env = BriscolaEnv(2)
-    agents = [RandomAgent("Gioele"), RandomAgent("Luca")]
-    full_df = pd.DataFrame()
-    for i in tqdm(range(train_episodes)):
-        env.run_env(agents)
-        dict_game_memory = [turn_memory.to_dict() for turn_memory in env.game_memories]
-        df = pd.DataFrame(dict_game_memory, dtype='object')
-        df['game'] = i
-        full_df = pd.concat([full_df, df], ignore_index=True)
-
-    if save_name:
-        full_df.to_csv(save_name)
 
 
 def train_agents():
@@ -53,6 +33,3 @@ def train_agents():
 
 # train_agents("briscola.weights.h5")
 # play(model_path="briscola.weights.h5")
-
-if __name__ == '__main__':
-    simulate_games()

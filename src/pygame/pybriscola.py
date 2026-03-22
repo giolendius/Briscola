@@ -164,7 +164,7 @@ class PyBriscolaEnv(BriscolaEnv):
 def text(screen, txt: str, posit: Tuple[int, int], color=(0, 0, 0), size=40):
     """Writes text on the pygame screen"""
     pos = (SCREEN_W // 2 + posit[0], posit[1])
-    font = pygame.font.Font("src/asset/Pixel-type.ttf", size)
+    font = pygame.font.Font("asset/Pixel-type.ttf", size)
     txt_surf = font.render(txt, False, color)
     text_rect = txt_surf.get_rect(midtop=pos)
     screen.blit(txt_surf, text_rect)

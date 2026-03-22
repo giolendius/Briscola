@@ -22,7 +22,7 @@ class Container:
 def get_card_sheet():
     # 735, 502
     # ori, coppe, bastoni, spade
-    image = pygame.image.load("src/asset/carte.png").convert_alpha()
+    image = pygame.image.load("asset/carte.png").convert_alpha()
     return image
 
 
