@@ -173,13 +173,21 @@ class BriscolaEnv:
         else:
             df = pd.read_csv(data)
 
-        br = np.stack(df["briscola"])
-        tb = np.stack(df["table0"])
-        hand0 = np.stack(df["hand0"])
-        hand1 = np.stack(df["hand1"])
-        hand2 = np.stack(df["hand2"])
+        def from_df_to_array(name: str):
+            return np.array([Card(val, suit).ia() for _, (val, suit) in df[[f"{name}_val", f"{name}_suit"]].iterrows()])
+
+        briscola = from_df_to_array('briscola')
+        tb = from_df_to_array("table1")
+        hand0 = from_df_to_array('hand0')
+        hand1 = from_df_to_array('hand1')
+        hand2 = from_df_to_array('hand2')
+        hand0_suit = np.stack(df["hand0_suit"])
+        hand1_val = np.stack(df["hand1_val"])
+        hand1_suit = np.stack(df["hand1_suit"])
+        hand2_val = np.stack(df["hand2_val"])
+        hand2_suit = np.stack(df["hand2_suit"])
         reward = df["reward"].to_numpy().reshape(-1, 1)
-        hst = agent.model.fit([br, tb, hand0, hand1, hand2], reward, verbose=2, epochs=epochs)
+        hst = agent.model.fit([briscola, tb, hand0, hand1, hand2], reward, verbose=2, epochs=epochs)
         history = hst.history["loss"]
 
         if save_name:

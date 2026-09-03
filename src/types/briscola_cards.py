@@ -22,9 +22,9 @@ class Card:
                 self.suit: int = suit
             else:
                 raise Exception("Il seme della carta non è valido. Dichiarare seme con intero 0-3")
-        elif not val:
+        elif not val or np.isnan(val):
             self.val = None
-            self.suit = suit
+            self.suit = 0
         else:
             raise Exception(f"Il valore {val} della carta non è valido")
 
