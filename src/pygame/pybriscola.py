@@ -70,7 +70,7 @@ class PyBriscolaEnv(BriscolaEnv):
                                                         30,
                                                         agent_name, '#34FFFF')
             for player_id in range(2)
-            for agent_id, agent_name in enumerate(agents_dict.keys())}
+            for agent_id, agent_name in enumerate(agents_dict.keys()) if not (agent_name=='Human' and player_id >=1)}
 
         self.buttons['play'] = Button(100, 60,
                            '#FF6745', '#FF2300',
@@ -114,13 +114,13 @@ class PyBriscolaEnv(BriscolaEnv):
             print("Hai premuto P, metto in pausa")
             self.flg_pause = not self.flg_pause
         elif isinstance(primo_giocatore, Human) and self.awaiting_user_input:
-            if tasto[pygame.K_1]:
+            if tasto[pygame.K_1] or tasto[pygame.K_KP_1]:
                 self.awaiting_user_input = False
                 primo_giocatore.action_chosen = Action(0)
-            elif tasto[pygame.K_2]:
+            elif tasto[pygame.K_2] or tasto[pygame.K_KP_2]:
                 self.awaiting_user_input = False
                 primo_giocatore.action_chosen = Action(1)
-            elif tasto[pygame.K_3]:
+            elif tasto[pygame.K_3] or tasto[pygame.K_KP_3]:
                 self.awaiting_user_input = False
                 primo_giocatore.action_chosen = Action(2)
         elif tasto[pygame.K_PLUS]:
